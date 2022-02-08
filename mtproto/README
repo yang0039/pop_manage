@@ -1,0 +1,31 @@
+//schema.tl.sync.pb.go
+
+"runtime/debug"
+"winkim/baselib/logger"
+
+func (m *Chat) MarshalTo(dAtA []byte) (int, error) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.LogSugar.Errorf("recover error MarshalTo panic: %v\n%s", err, string(debug.Stack()))
+			logger.LogSugar.Errorf("recover error Chat MarshalTo: %v\n", m)
+		}
+	}()
+
+func (m *Message) MarshalTo(dAtA []byte) (int, error) {
+	defer func() {
+			if err := recover(); err != nil {
+					logger.LogSugar.Errorf("recover error MarshalTo panic: %v\n%s", err, string(debug.Stack()))
+					logger.LogSugar.Errorf("recover error Message MarshalTo: %v\n", m)
+			}
+	}()
+
+func (m *Updates) Marshal() (dAtA []byte, err error) {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.LogSugar.Errorf("recover error Updates Marshal handle panic: %v", err)
+			logger.LogSugar.Errorf("recover error Updates:%v", m)
+			logger.LogSugar.Errorf("recover error Updates Marshal - %v", string(debug.Stack()))
+		}
+	}()
+
+		

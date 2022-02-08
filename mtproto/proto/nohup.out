@@ -1,0 +1,58 @@
+63172:C 23 Oct 2020 10:08:02.399 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+63172:C 23 Oct 2020 10:08:02.399 # Redis version=5.0.4, bits=64, commit=00000000, modified=0, pid=63172, just started
+63172:C 23 Oct 2020 10:08:02.399 # Configuration loaded
+63172:M 23 Oct 2020 10:08:02.400 * Increased maximum number of open files to 10032 (it was originally set to 8192).
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.4 (00000000/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in standalone mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 6380
+ |    `-._   `._    /     _.-'    |     PID: 63172
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+63172:M 23 Oct 2020 10:08:02.417 # Server initialized
+63172:M 23 Oct 2020 10:08:02.433 * DB loaded from disk: 0.016 seconds
+63172:M 23 Oct 2020 10:08:02.433 * Ready to accept connections
+68377:C 11 Nov 2020 21:40:44.552 # oO0OoO0OoO0Oo Redis is starting oO0OoO0OoO0Oo
+68377:C 11 Nov 2020 21:40:44.552 # Redis version=5.0.4, bits=64, commit=00000000, modified=0, pid=68377, just started
+68377:C 11 Nov 2020 21:40:44.552 # Configuration loaded
+68377:M 11 Nov 2020 21:40:44.553 * Increased maximum number of open files to 10032 (it was originally set to 8192).
+                _._                                                  
+           _.-``__ ''-._                                             
+      _.-``    `.  `_.  ''-._           Redis 5.0.4 (00000000/0) 64 bit
+  .-`` .-```.  ```\/    _.,_ ''-._                                   
+ (    '      ,       .-`  | `,    )     Running in standalone mode
+ |`-._`-...-` __...-.``-._|'` _.-'|     Port: 6380
+ |    `-._   `._    /     _.-'    |     PID: 68377
+  `-._    `-._  `-./  _.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |           http://redis.io        
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+ |`-._`-._    `-.__.-'    _.-'_.-'|                                  
+ |    `-._`-._        _.-'_.-'    |                                  
+  `-._    `-._`-.__.-'_.-'    _.-'                                   
+      `-._    `-.__.-'    _.-'                                       
+          `-._        _.-'                                           
+              `-.__.-'                                               
+
+68377:M 11 Nov 2020 21:40:44.561 # Server initialized
+68377:M 11 Nov 2020 21:40:44.569 * DB loaded from disk: 0.008 seconds
+68377:M 11 Nov 2020 21:40:44.569 * Ready to accept connections
+68377:M 13 Nov 2020 18:42:44.385 * 1 changes in 900 seconds. Saving...
+68377:M 13 Nov 2020 18:42:44.386 * Background saving started by pid 27774
+27774:C 13 Nov 2020 18:42:44.399 * DB saved on disk
+68377:M 13 Nov 2020 18:42:44.487 * Background saving terminated with success
+68377:M 13 Nov 2020 18:47:45.042 * 10 changes in 300 seconds. Saving...
+68377:M 13 Nov 2020 18:47:45.042 * Background saving started by pid 28436
+28436:C 13 Nov 2020 18:47:45.048 * DB saved on disk
+68377:M 13 Nov 2020 18:47:45.144 * Background saving terminated with success

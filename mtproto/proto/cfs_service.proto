@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+option optimize_for = CODE_SIZE;
+
+import "schema.tl.sync.proto";
+
+package mtproto;
+
+message UploadPhotoFileRequest {
+    int32 userId = 1;
+    int32 p_type = 2;
+    int64 authId = 3;
+    InputFile file = 4;
+    int32   layer = 5;
+}
+
+message GetPhotoFileDataRequest {
+    int64 photo_id = 1;
+    int64 access_hash = 2;
+    int32   layer = 3;
+}
+
+message PhotoDataRsp {
+    int64 photo_id = 1;
+    int64 access_hash = 2;
+    int32 date = 3;
+    repeated PhotoSize size_list =4;
+}
+
+message CfsUploadedPhotoMedia {
+    int32 userId = 1;
+    int32 p_type = 2;
+    int64 authId = 3;
+    TL_inputMediaUploadedPhoto media = 4;
+    int32   layer = 5;
+}
+
+
+message CfsUploadedDocumentMedia {
+    int32 userId = 1;
+    int64 authId = 2;
+    TL_inputMediaUploadedDocument media = 3;
+    int32   layer = 4;
+}
+
+message DocumentId {
+    int64 id = 1;
+    int64 access_hash = 2;
+    int32 version = 3;
+    int32   layer = 4;
+}
+
+message DocumentAttributeList {
+    repeated DocumentAttribute attributes = 1;
+}
+
+message DocumentIdList {
+    repeated int64 id_list = 1;
+    int32   layer = 2;
+}
+
+message DocumentList {
+    repeated Document documents = 1;
+}
+
+message MergeEncryptedFileRequest {
+    int32 userId = 1;
+    int64 authId = 2;
+    int64 part_id = 3;
+    int32 parts = 4;
+    int32 key_fingerprint = 5;
+}
+
+message PhotoVideo {
+    int32 userId = 1;
+    int64 authId = 2;
+    int64   file_part_id = 3;
+    string  md5_checksum = 4;
+    string  video_name = 5;
+    int32   parts = 6;
+    double   video_start_ts = 7;
+    int32   layer = 8;
+}
+
+service RPCCfs {
+    rpc cfs_uploadPhotoFile(UploadPhotoFileRequest) returns (PhotoDataRsp);
+    rpc cfs_getPhotoFileData(GetPhotoFileDataRequest) returns (PhotoDataRsp);
+    rpc cfs_uploadedPhotoMedia(CfsUploadedPhotoMedia) returns (TL_messageMediaPhoto);
+    rpc cfs_uploadedDocumentMedia(CfsUploadedDocumentMedia) returns (TL_messageMediaDocument);
+    rpc cfs_getDocument(DocumentId) returns (Document);
+    rpc cfs_getDocumentList(DocumentIdList) returns (DocumentList);
+    rpc cfs_mergeEncryptedFile(MergeEncryptedFileRequest) returns (EncryptedFile_Data);
+
+    rpc cfs_saveDocumentAsWebp(DocumentId) returns (Photo);
+
+    rpc cfs_uploadPhotoVideo(PhotoVideo) returns (Photo);
+}

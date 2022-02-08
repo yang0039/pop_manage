@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option optimize_for = CODE_SIZE;
+
+package mtproto;
+
+message AuthKeyMetadata {
+    bytes nonce = 1;
+    bytes server_nonce = 2;
+    bytes new_nonce = 3;
+    bytes a = 4;
+    bytes p = 5;
+    int64 auth_key_id = 6;
+    bytes auth_key = 7;
+}
+
+message AuthKeyRequest {
+    int64 auth_key_id = 1;
+}
+
+message AuthKeyData {
+    int32 result = 1;
+    int64 auth_key_id = 2;
+    bytes auth_key = 3;
+}
+
+// TODO(@work): remove to biz_auth service
+message AuthKeyIdRequest {
+    int64 auth_key_id = 1;
+}
+
+message UserIdResponse {
+    int32 result = 1;
+    int64 auth_key_id = 2;
+    int32 user_id = 3;
+}
+
+service ZRPCAuthKey {
+    rpc QueryAuthKey(AuthKeyRequest) returns (AuthKeyData);
+    // TODO(@work): remove to biz_auth service
+    rpc QueryUserId(AuthKeyIdRequest) returns (UserIdResponse);
+}

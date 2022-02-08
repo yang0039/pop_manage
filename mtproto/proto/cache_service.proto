@@ -1,0 +1,368 @@
+syntax = "proto3";
+
+option optimize_for = CODE_SIZE;
+
+// import "google/protobuf/any.proto";
+import "schema.tl.sync.proto";
+import "schema.tl.sync_service.proto";
+import "schema.tl.transport.proto";
+// import "cfs_service.proto";
+
+package mtproto;
+
+
+
+message AuthKeyInfo {
+    int32 user_id	 = 1;
+    int64 auth_id = 2;
+    bytes auth_key = 3;
+}
+
+message ChangeAuthKey {
+    int32 user_id	 = 1;
+    int64 auth_id = 2;
+    int32 old_uid = 3;
+}
+
+
+message UserPresence {
+    int32 user_id	 = 1;
+    int64 auth_id = 2;
+    bool offline = 3;
+    string  last_seen_ip = 4;
+}
+
+
+message UserState {
+    int32 user_id	 = 1;
+    int32 pts = 2;
+    int32 qts = 3;
+    int32 queue = 4;
+}
+
+message UserUnreadCount {
+    int32   user_id	 = 1;
+    int64   auth_id = 2;
+    int32   unread_count = 3;
+}
+message UserUnreadCountList {
+    repeated UserUnreadCount    unread_list = 1;
+}
+
+message UserDialog {
+    int32 user_id	 = 1;
+    int32 peer_type = 2;
+    int32 peer_id = 3;
+
+    int32 top_message = 4;
+    int32 incr_read_inbox_max_id = 5;
+    int32 incr_unread_count = 6;
+    int32 incr_unread_mentions_count = 7;
+    bytes  draft_message = 8;
+
+    bool    is_delete = 9;
+    bool    clear_draft = 10;
+    bool    update_draft = 11;
+    bool    clear_count = 12;
+    bool    update_mention = 13;
+    bool    update_top_message = 14;
+}
+message DialogRowPeer {
+    int32 user_id	 = 1;
+    int32 peer_type = 2;
+    int32 peer_id = 3;
+}
+
+message ReadHistory {
+    int32 user_id	 = 1;
+    int32 peer_type = 2;
+    int32 peer_id = 3;
+    int32 max_id = 4;
+
+    bool    is_inbox = 5;
+    int64   auth_id = 6;
+    int32   pts = 7;
+}
+message ChannelReadHistory {
+    int32 user_id	 = 1;
+    int32 from_id	 = 2;
+    int32 peer_type = 3;
+    int32 peer_id = 4;
+    int32 max_id = 5;
+}
+
+message LastSeenAt {
+    int32  user_id = 1;
+    int32   last_seen_at = 2;
+}
+message Int32 {
+    int32   id = 1;
+}
+message Int64 {
+    int64   id = 1;
+}
+message Result {
+    bool    ok = 1;
+}
+message Int32List {
+    repeated    int32   id = 1;
+}
+
+
+message PhotoFileUnit {
+    int64 volume_id	 = 1;
+    int32 local_id = 2;
+    int64 secret = 3;
+    int32 offset = 4;
+    int32 limit = 5;
+}
+message DocumentFileUnit {
+    int64 document_id	 = 1;
+    int64 access_hash = 2;
+    int32 version = 3;
+    int32 offset = 4;
+    int32 limit = 5;
+}
+
+message PhotoSizeList {
+    repeated PhotoSize sizes = 1;
+}
+
+message SaltUntilReq {
+    int64 auth_id	 = 1;
+    int64 salt = 2;
+}
+
+message SaltsReq {
+    int64 msg_id	 = 1;
+    int64 auth_id = 2;
+    int32 num = 3;
+}
+
+message SaltItem {
+    int64 salt  = 1;
+    int32 until = 2;
+}
+
+message SeqRequest {
+    int32 user_id  = 1;
+    int32 channel_id = 2;
+    int64 auth_id = 3;
+    int32 flag = 4;
+}
+
+message DialogState {
+    int32 pts  = 1;
+    int32 unread_count = 2;
+    int32 top_message = 3;
+    int32 read_inbox_max_id = 4;
+    int32 read_outbox_max_id = 5;
+    int32 unread_mentions_count = 6;
+}
+
+message ReceiveItem {
+    int32 user_id  = 1;
+    int64 auth_id = 2;
+    int32 channel_id = 3;
+    int32 recv_update_max_id  = 4;
+    int32 flag = 5;     //1:pts, 2:qts, 3:seq, 4:channel
+    bool  is_del = 6;
+}
+
+message ChatPtsItem {
+    int32   chat_id = 1;
+    int32   user_id = 2;
+    int64   auth_id = 3;
+    int32   pts = 4;
+}
+
+message MigrateToMegagroupItem {
+    int32   chat_id = 1;
+    int32   channel_id = 2;
+}
+
+// 用户从一个Gw上线，或者离线，或者发某个GW CLOSE了的消息，某个GW上线了的消息
+// 某个GW上线，或者离线，都要清除这个GW上的所有用户在线信息
+message UserConnectItem {
+    int32   gw_server_id = 1;
+    int32   user_id	 = 2;
+    int64   auth_id = 3;
+    bool    connect = 4;
+}
+
+message UserConns {
+    int32   user_id = 1;
+    repeated    string conns = 2;
+}
+message UserConnsList {
+    repeated UserConns user_conns = 1;
+}
+
+//message AccountNotifySetting {
+//    int32   user_id = 1;
+//    InputNotifyPeer notify_peer = 2;
+//    InputPeerNotifySettings peer_setting = 3;
+//}
+
+//message UserNotifySetting {
+//    int32   user_id = 1;
+//    repeated InputPeerNotifySettings    notiffy_settings = 2;
+//}
+//message GroupUserNotifySetting {
+//    repeated UserNotifySetting user_notify_settings = 1;
+//}
+
+message UsersRequest {
+    int32   user_id = 1;
+    Int32List   uid_list = 2;
+    bool    is_simple = 3;
+}
+message MtprotoUsers {
+    repeated    User users = 1;
+}
+message UserPrivacyItem {
+    int32   user_id = 1;
+    int32   key_type = 2;
+}
+
+service RPCCache {
+    rpc GetUsersBySelfAndIDList(UsersRequest) returns (MtprotoUsers){}
+    rpc UpdateUserCache(Int32) returns (Result){}
+    rpc UpdatePrivacyRule(UserPrivacyItem) returns (Result){}
+    rpc GetContacts(Int32) returns (contacts_Contacts){}
+    rpc GetStatuses(Int32) returns (Vector_ContactStatus){}
+
+    rpc GetAuthKey(Int64) returns (AuthKeyInfo){}
+    rpc SetAuthKey(AuthKeyInfo) returns (Result){}   //user_id没有值
+    rpc BindAuthKeyUid(AuthKeyInfo) returns (Result){}  //只 user_id, auth_id 有值，绑字KEY的接口
+    rpc DelAuthKey(Int64) returns (Result){}
+    rpc ChangeAuthKeyUid(ChangeAuthKey) returns (Result){}
+
+
+    rpc UpdatePresences(stream UserPresence) returns (Result){}
+    rpc ForceDialog2Db(DialogRowPeer) returns (Result){}
+
+    rpc UpdateReadHistory(ReadHistory) returns (Result){}
+    // channel 人多时，用不用给发送者返回『已读』推送，增加个变量 2时不给发送者推已读消息
+    rpc ReadChannelHistory(ChannelReadHistory) returns (Int32){}
+    rpc GetReadInboxMaxId(DialogRowPeer) returns (Int32){}
+
+    rpc GetUnreadCount(UserUnreadCount) returns (Int32){}
+    rpc GetUnreadCountGroup(Int32) returns (UserUnreadCountList){}
+
+    //rpc UpdateUserNotifySetting(AccountNotifySetting) returns (Result){}
+    //rpc GetUserNotifySetting(DialogRowPeer) returns (UserNotifySetting){}
+    //rpc GetSuperGroupNotifySetting(DialogRowPeer) returns (GroupUserNotifySetting){}
+
+    //简单Rpc
+    // 获取用户数据
+    //rpc GetUserInfo(UserInfoRequest) returns (UserInfoResponse){}
+
+    //  
+    rpc UpdateDialog(stream UserDialog) returns (Result){}
+    rpc GetDialog(Int32) returns (UserDialog){}
+
+    rpc GetLastSeenAt(stream Int32) returns (stream LastSeenAt){}
+    rpc GetNextMsgId(stream Int32) returns (stream Int32){}
+
+    rpc GetPhotoFileData(PhotoFileUnit) returns (upload_File){}
+    rpc GetDocumentFileData(DocumentFileUnit) returns (upload_File){}
+    rpc GetPhotoSizeList(Int64) returns (PhotoSizeList){}
+    rpc GetDocument(DocumentFileUnit) returns (Document){}
+
+    rpc GetSaltUntil(SaltUntilReq) returns (Int32){}
+    rpc GetOneSalt(Int64) returns (SaltItem){}
+    rpc GetFutureSalts(SaltsReq) returns (FutureSalts){}
+
+    rpc GetPts(SeqRequest) returns (Int32){}
+    rpc GetQts(SeqRequest) returns (Int32){}
+    rpc GetSeq(SeqRequest) returns (Int32){}
+    rpc GetMsgBoxId(SeqRequest) returns (Int32){}
+
+    rpc GetChannelPts(SeqRequest) returns (Int32){}
+    rpc GetChannelMsgId(SeqRequest) returns (Int32){}
+    rpc GetState(SeqRequest) returns (updates_State){}
+
+    rpc GetDialogState(DialogRowPeer) returns (DialogState){}
+
+    rpc GetParticipantIds(Int32) returns (Int32List){}
+    rpc GetParticipantConnsList(Int32) returns (UserConnsList){}    //群里所有在线的用户的连接信息
+    rpc GetChatRow(Int32) returns (ChatRow){}
+    rpc GetChatRows(Int32List) returns (ChatRows){}
+
+    rpc GetParticipant(ParticipantItem) returns (ParticipantRow){}
+    rpc GetParticipant2(ParticipantItem) returns (ParticipantRow){} //with kicked
+    rpc GetParticipantRows(Int32) returns (ParticipantRows){}
+
+    rpc GetParticipantCount(Int32) returns (Int32){}
+    rpc IsParticipant(ParticipantItem) returns (Result){}
+
+    rpc AddParticipant(ParticipantItem) returns (Result){}
+    rpc DelKickParticipant(ParticipantItem2) returns (Result){}
+    rpc UpdateChat(Int32) returns (Result){}
+    rpc UpdateChatParticipant(ParticipantItem) returns (Result){}
+
+    rpc UpdateChatReceivedPts(stream ChatPtsItem) returns (stream Result){}
+    rpc UpdateReceiveMaxId(ReceiveItem) returns (Int32){}
+
+    rpc MigrateToMegagroup(MigrateToMegagroupItem) returns (Result){}
+
+    rpc UpdateUserConn(stream UserConnectItem) returns (Result){}
+    rpc GetUserConns(Int32) returns (UserConns){}
+}
+
+
+message ChatRow {
+    int32 id  = 1;
+    int64 access_hash = 2;
+    bool democracy = 3;
+    int32 creator_id = 4;
+    int32 pinned_msg_id = 5;
+    string about = 6;
+    string title = 7;
+    int32 type = 8;
+    int64 photo_id = 9;
+    bool admins_enabled = 10;
+    int32 migrated_from_chat_id = 11;
+    int32 migrated_from_max_id = 12;
+    int32 migrated_to = 13;
+    string username = 14;
+    bool hidden_prehistory = 15;
+    bool signatures = 16;
+    bool deactivated = 17;
+    bool verified = 18;
+    int32 rights_mask = 19;
+    int32 version = 20;
+    int64 sticker_set_id = 21;
+    int32 add_time = 22;
+}
+message ChatRows {
+    repeated ChatRow rows = 1;
+}
+
+message ParticipantItem {
+    int32   chat_id = 1;
+    int32   user_id = 2;
+}
+message ParticipantItem2 {
+    int32   chat_id = 1;
+    int32   user_id = 2;
+    bool    is_del = 3;
+}
+message ParticipantRow {
+    int32 chat_id  = 1;
+    int32 user_id = 2;
+    int32 type = 3;
+    bool bot = 4;
+    int32 inviter_id = 5;
+    int32 rights_mask = 6;
+    int32 until_date = 7;
+    bool kicked = 8;
+    int32 available_min_id = 9;
+    int32 promoted_by = 10;
+    int32 add_time = 11;
+    int32 update_time = 12;
+}
+message ParticipantRows {
+    repeated ParticipantRow rows = 1;
+}

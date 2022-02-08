@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package mtproto;
+
+option optimize_for = CODE_SIZE;
+
+import "schema.tl.core_types.proto";
+import "api.proto";
+
+
+///////////////////////////////////////////////////////////////////////////////
+// api.addAuthKey#a378255b auth_key_id:long auth_key:bytes = Null;
+message TL_api_addAuthKey {
+    int64 auth_key_id = 1;
+    bytes auth_key = 2;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// api.initConnectionLite#1933c9ca {X:Type} api_id:int device_model:string system_version:string app_version:string system_lang_code:string lang_pack:string lang_code:string = Null;
+message TL_api_initConnectionLite {
+    int32 api_id = 1;
+    string device_model = 2;
+    string system_version = 3;
+    string app_version = 4;
+    string system_lang_code = 5;
+    string lang_pack = 6;
+    string lang_code = 7;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// api.coinRequest#226d066a method:string data:string = coinMessage;
+message TL_api_coinRequest {
+    string method = 1;
+    string data = 2;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// Vector api result type
+
+
+///////////////////////////////////////////////////////////////////////////////
+// rpc
+
+service RPCApi {
+// api.addAuthKey#a378255b auth_key_id:long auth_key:bytes = Null;
+    rpc api_addAuthKey(TL_api_addAuthKey) returns (Null) {}
+// api.initConnectionLite#1933c9ca {X:Type} api_id:int device_model:string system_version:string app_version:string system_lang_code:string lang_pack:string lang_code:string = Null;
+    rpc api_initConnectionLite(TL_api_initConnectionLite) returns (Null) {}
+// api.coinRequest#226d066a method:string data:string = coinMessage;
+    rpc api_coinRequest(TL_api_coinRequest) returns (coinMessage) {}
+}
+

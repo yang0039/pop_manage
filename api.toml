@@ -1,0 +1,22 @@
+
+dbindex = 2
+
+minio = "192.168.31.205:9000"
+
+[mysql]
+name = "immaster"
+dsn = "root:03050039@tcp(127.0.0.1)/im?charset=utf8mb4"
+active = 500
+idle = 50
+
+[redis]
+name = "cache"
+addr = "127.0.0.1:6379"
+idle = 100
+active = 0
+#dialTimeout = "1s"
+#readTimeout = "1s"
+#writeTimeout = "1s"
+#idleTimeout = "10s"
+dbNum = 0
+password = ""

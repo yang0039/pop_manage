@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+package mtproto;
+
+option optimize_for = CODE_SIZE;
+
+import "schema.tl.crc32.proto";
+import "schema.tl.core_types.proto";
+
+
+///////////////////////////////////////////////////////////////////////////////
+// coinMessage <--
+//  + TL_coinMessage
+//
+message coinMessage_Data {
+    string jsonstr = 1;
+}
+
+message coinMessage {
+    TLConstructor constructor = 1;
+    coinMessage_Data data2 = 2;
+}
+
+// coinMessage#9703c3e1 jsonstr:string = coinMessage;
+message TL_coinMessage {
+    coinMessage_Data data2 = 2;
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+// winkConfig <--
+//  + TL_winkConfig
+//
+message winkConfig_Data {
+    Bool new_channel = 1;
+    Bool super_group = 2;
+}
+
+message winkConfig {
+    TLConstructor constructor = 1;
+    winkConfig_Data data2 = 2;
+}
+
+// winkConfig#1bdefe9 new_channel:Bool super_group:Bool = winkConfig;
+message TL_winkConfig {
+    winkConfig_Data data2 = 2;
+}
+
+

@@ -1,0 +1,214 @@
+syntax = "proto3";
+
+option optimize_for = CODE_SIZE;
+
+import "schema.tl.sync.proto";
+
+package mtproto;
+
+
+// ## telegram的同步服务思考
+//  - telegram消息的同步有两种类型的数据：
+//      * 一是消息类服务，此类服务是基于用户的同步，需要进行离线存储，通过pts和qts来进行同步，
+//        pts和qts与用户进行绑定（qts是否和用户进行绑定还需要观察）
+//      * 另一类是在线推送服务，如果设备终端在线需要推送到客户端设备，
+//        一旦推送结束此消息生命周期就结束，并不需要进行离线存储，
+//        例如phoneCall握手服务以及修改用户配置后同步到其他客户端设备等，通过seq进行同步
+//
+//  - 同步服务需要提供给调用方两种类型的接口
+//      * 基于用户的推送接口，分两种
+//          * 推送到该用户下所有的在线客户端设备
+//          * 推送到该用户下除了某一个设备之外的所有其他在线客户端设备
+//      * 基于设备的推送接口
+//          * 推送给指定设备
+//          * 推送到该用户下除了某一个设备之外的所有其他在线客户端设备
+//
+//  - pts和qts以及seq由sync_server服务生成并维护sync队列
+//    > 注意，因为消息服务不维护pts和qts以及seq，但发消息等rpc调用会返回pts以及qts和seq，
+//    > sync_server还要提供一些接口给消息服务获取pts和qts以及seq
+//
+
+// 同步类型
+enum SyncType {
+    SYNC_TYPE_UNKNOWN               = 0;        // unknown
+    SYNC_TYPE_USER                  = 1;        // 该用户所有设备
+    SYNC_TYPE_USER_NOTME            = 2;        // 该用户除了某个设备
+    SYNC_TYPE_USER_ME               = 3;        // 该用户指定某个设备
+    SYNC_TYPE_RPC_RESULT            = 4;        // 通过push通道返回rpc
+
+    // SYNC_TYPE_AUTH_KEY              = 3;        // 发送给指定设备
+    // SYNC_TYPE_AUTH_KEY_USER         = 4;        // 该用户所有设备
+    // SYNC_TYPE_AUTH_KEY_USERNOTME    = 5;        // 该用户除了某个设备
+}
+
+enum UpdateType {
+    UPDATE_NORMAL = 0;
+    UPDATE_PHONE = 1;
+    UPDATE_ENCRYPT = 2;
+}
+
+enum SyncOnlineType {
+    ALL = 0; // 不区分在线离线（兼容旧代码，旧代码默认是0）
+    ONLY_ONLINE = 1; // 只推在线
+    ONLY_OFFLINE = 2; // 只推离线
+}
+
+
+enum SessionType {
+    SESSION_UNKNOWN = 0;
+    SESSION_GENERIC = 1;
+    SESSION_DOWNLOAD = 2;
+    SESSION_UPLOAD = 3;
+    SESSION_PUSH = 4;
+    SESSION_TEMP = 5;
+    SESSION_PROXY = 6;
+    SESSION_GENERIC_MEDIA = 7;
+}
+
+
+//message MessageDataEmpty {
+//}
+//
+//message MessageData {
+//    int32 message_type = 1;
+//}
+
+message VoidRsp {
+}
+
+//message PushClientID {
+//    int64 auth_key_id = 1;
+//    int64 session_id = 2;
+//    int64 netlib_session_id = 3;
+//}
+
+// PushMessage state
+message ClientUpdatesState {
+    int32 pts = 1;
+    int32 pts_count = 2;
+    int32 qts = 3;
+    int32 qts_count = 4;
+    int32 seq = 5;
+    int32 seq_start = 6;
+    int32 date = 7;
+}
+
+// updateShortMessage
+// updateShortChatMessage
+// updateShort
+// updatesCombined
+// updates
+// updateShortSentMessage
+
+///////////////////////////////////////////////////////////////////////
+// SERVER_AUTH_REQ
+message ConnectToServerReq {
+}
+
+message ServerConnectedRsp {
+    int32  server_id = 1;
+    string server_name = 2;
+}
+//前端断开连接，通知biz_server  connId not found时，也向BIZ发这个消息
+message ClientCloseNotification {
+    uint64  conn_id = 1;
+    int64   auth_key_id = 2;
+}
+//给gateway需要的auth信息，biz,db的signUp时会给gw传
+message AuthInfoRequest {
+    int64   auth_key_id = 1;
+}
+message AuthInfoResponse {
+    int64   auth_key_id = 1;
+    int32   user_id = 2;
+    bytes  auth_key = 3;
+}
+//通知gateway，salt的值
+message SaltUpdateNotification {
+    int64   auth_key_id = 1;
+    uint64  conn_id = 2;
+    int64   session_id = 3;
+    int64   salt = 4;
+}
+
+message SessionIdNotify {
+    uint64  conn_id = 1;
+    int64   auth_id = 2;
+    int64   session_id = 3;
+    uint64  seq_num = 4;
+    SessionType session_type = 5;
+}
+//没传connType过来的，若有connType，返回给gateway
+message ConnTypeNotify {
+    uint64  conn_id = 1;
+    int32   conn_type = 2;
+}
+
+//通知gateway端、biz服务，某个authId被终止了，需要退出重新登录
+// 某种情况（比如logOut)后，需要删除缓存中的AuthKey
+message TerminateAuthKeyNotification {
+    int64   auth_key_id = 1;
+}
+//db_serer通知biz，要换authId 绑定的userId了
+message AuthIdChangeUidNotification {
+    int64   auth_key_id = 1;
+    int32   user_id = 2;
+    int32   old_uid = 3;
+}
+
+//服务器之间互相ping，检测有没断线的消息
+message ServerPing {
+    int64   ping_id = 1;
+}
+message ServerPong {
+    int64   ping_id = 1;
+}
+
+// PushUpdatesData --> VoidRsp
+message PushUpdatesData {
+    int64 auth_key_id = 1;
+    ClientUpdatesState state = 2;
+    bytes  updates_data = 3;
+}
+
+// Updates
+// messages_affectedHistory
+// messages_affectedMessages
+message RpcResultData {
+    // int32 rpc_result_type = 1;
+    Updates updates = 2;
+    TL_messages_affectedHistory affected_history = 3;
+    TL_messages_affectedMessages affected_messages = 4;
+}
+
+///////////////////////////////////////////////////////////////////////
+// RPC
+message UpdatesRequest {
+    SyncType push_type = 1;
+    UpdateType update_type = 2;
+    int64 auth_key_id = 3;
+    int32 push_user_id = 4;
+    int64 client_msg_id = 5;
+    Updates updates = 6;
+    RpcResultData rpc_result = 7;
+
+    bool    is_group = 8;
+    SyncOnlineType sot = 9;
+
+    int32   layer = 10;
+    repeated int32 uid_list = 11;
+    repeated int32 cid_list = 12;
+}
+
+// message
+//message UpdatesListRequest {
+//    repeated UpdatesRequest updates_list = 1;
+//}
+
+// Interface exported by the server.
+service RPCSync {
+    rpc SyncUpdatesData(UpdatesRequest) returns (ClientUpdatesState);
+    rpc PushUpdatesData(UpdatesRequest) returns (VoidRsp);
+    rpc PushUpdatesData2(UpdatesRequest) returns (VoidRsp); // not write to database, only push
+    // rpc PushUpdatesDataList(UpdatesListRequest) returns (VoidRsp);
+}
