@@ -42,16 +42,59 @@ func (dao *ChatParticipantDAO) GetChatNumIds(num, limit, offset int32) (map[int3
 	return chatNum, count
 }
 
-func (dao *ChatParticipantDAO) GetChatByManage(manId, limit, offset int32) ([]int32, int32) {
+// 通过拥有者id获取群id
+func (dao *ChatParticipantDAO) GetChatIdsByCreator(creatId, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
 	qry := `
 	select chat_id
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and p.type = 2 and user_id = ? and c.type != 4
+	where deactivated = 0 and c.type in (?)
+	and user_id = ? and p.type = 1 limit ? offset ?;
+	`
+	q, args, err := sqlx.In(qry, chatType, creatId, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return chatIds, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var chatId int32
+		err = rows.Scan(&chatId)
+		raise(err)
+		chatIds = append(chatIds, chatId)
+	}
+
+	qryCount := `
+	select count(*)
+	from chat_participant p
+	left join chat c on p.chat_id = c.id
+	where deactivated = 0 and c.type in (?)
+	and user_id = ? and p.type = 1
+	`
+	q2, args, err := sqlx.In(qryCount, chatType, creatId)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return chatIds, count
+}
+
+func (dao *ChatParticipantDAO) GetChatByManage(manId, limit, offset int32, chatType []int32) ([]int32, int32) {
+	chatIds := make([]int32, 0)
+	qry := `
+	select chat_id
+	from chat_participant p
+	left join chat c on p.chat_id = c.id
+	where deactivated = 0 and p.type = 2 and c.type in (?) and user_id = ?
 	group by chat_id limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry, manId, limit, offset)
+	q, args, err := sqlx.In(qry, chatType, manId, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -68,25 +111,29 @@ func (dao *ChatParticipantDAO) GetChatByManage(manId, limit, offset int32) ([]in
 	select count(*) count
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and p.type = 2 and user_id = ? and c.type != 4;
+	where deactivated = 0 and p.type = 2 and c.type in (?) and user_id = ?;
 	`
-	row := dao.db.QueryRow(qryCount, manId)
+	q2, args, err := sqlx.In(qryCount, chatType, manId)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
 	return chatIds, count
 }
 
-func (dao *ChatParticipantDAO) GetChatByMember(manId, limit, offset int32) ([]int32, int32) {
+func (dao *ChatParticipantDAO) GetChatByMember(manId, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
 	qry := `
 	select chat_id
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and user_id = ?
+	where deactivated = 0 and c.type in (?) and user_id = ?
 	group by chat_id limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry, manId, limit, offset)
+	q, args, err := sqlx.In(qry, chatType, manId, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -103,25 +150,29 @@ func (dao *ChatParticipantDAO) GetChatByMember(manId, limit, offset int32) ([]in
 	select count(*) count
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and user_id = ?;
+	where deactivated = 0 and c.type in (?) and user_id = ?;
 	`
-	row := dao.db.QueryRow(qryCount, manId)
+	q2, args, err := sqlx.In(qryCount, chatType, manId)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
 	return chatIds, count
 }
 
-func (dao *ChatParticipantDAO) GetChatPart(manId, limit, offset int32) ([]int32, int32) {
+func (dao *ChatParticipantDAO) GetChatPart(manId, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
 	qry := `
 	select chat_id
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and p.type = 0 and user_id = ? and c.type != 4
+	where deactivated = 0 and p.type = 0 and c.type in (?) and user_id = ?
 	group by chat_id limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry, manId, limit, offset)
+	q, args, err := sqlx.In(qry, chatType, manId, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -138,16 +189,18 @@ func (dao *ChatParticipantDAO) GetChatPart(manId, limit, offset int32) ([]int32,
 	select count(*) count
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where deactivated = 0 and p.type = 0 and user_id = ? and c.type != 4;
+	where deactivated = 0 and p.type = 0 and c.type in (?) and user_id = ?;
 	`
-	row := dao.db.QueryRow(qryCount, manId)
+	q2, args, err := sqlx.In(qryCount, chatType, manId)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
 	return chatIds, count
 }
 
-func (dao *ChatParticipantDAO) GetChatByMemNum(min, max, limit, offset int32) ([]int32, int32) {
+func (dao *ChatParticipantDAO) GetChatByMemNum(min, max, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
 	qry := `
 	select chat_id, count
@@ -156,13 +209,15 @@ func (dao *ChatParticipantDAO) GetChatByMemNum(min, max, limit, offset int32) ([
 	  select chat_id, count(*) count
 	  from chat_participant p
 	  left join chat c on p.chat_id = c.id
-	  where deactivated = 0 and c.type in (1, 2)
+	  where deactivated = 0 and c.type in (?)
 	  group by chat_id
 	) d
 	where count between ? and ? 
 	order by count limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry, min, max, limit, offset)
+	q, args, err := sqlx.In(qry, chatType, min, max, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -182,12 +237,14 @@ func (dao *ChatParticipantDAO) GetChatByMemNum(min, max, limit, offset int32) ([
 	  select chat_id, count(*) count
 	  from chat_participant p
 	  left join chat c on p.chat_id = c.id
-	  where deactivated = 0 and c.type in (1, 2)
+	  where deactivated = 0 and c.type in (?)
 	  group by chat_id
 	) d
 	where count between ? and ?;
 	`
-	row := dao.db.QueryRow(qryCount, min, max)
+	q2, args, err := sqlx.In(qryCount, chatType, min, max)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
@@ -226,7 +283,7 @@ func (dao *ChatParticipantDAO) GetUserChatNum(userIds []int32) map[int32]map[str
 	  ) as manage_num
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
-	where c.deactivated = 0 and user_id in %s
+	where c.deactivated = 0 and c.type != 4 and user_id in %s
 	group by user_id;
 	`, queryType)
 	rows, err := dao.db.Queryx(qry)

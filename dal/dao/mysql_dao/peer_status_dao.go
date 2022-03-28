@@ -127,3 +127,100 @@ func (dao *PeerStatusDAO) QryStatusRecord(peerId, limit, offset int32) ([]*datao
 	raise(err)
 	return res, count
 }
+
+func (dao *PeerStatusDAO) GetStatuChatIds(status []int32, limit, offset int32, chatType []int32) ([]int32, int32) {
+	chatIds := make([]int32, 0)
+	now := time.Now().Unix()
+	qry := `
+	select peer_id
+	from manage_peer_status m
+	left join chat c on m.peer_id = c.id
+	where is_effect = 1 and m.status in (?) and c.type in (?) and c.deactivated = 0
+	and (util = -1 or util > ?)
+	order by c.add_time desc limit ? offset ?;
+	`
+	q, args, err := sqlx.In(qry, status, chatType, now, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return chatIds, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var chatId int32
+		err = rows.Scan(&chatId)
+		raise(err)
+		chatIds = append(chatIds, chatId)
+	}
+	if len(chatIds) == 0 {
+		return chatIds, 0
+	}
+
+	qryCount := `
+	select peer_id
+	from manage_peer_status m
+	left join chat c on m.peer_id = c.id
+	where is_effect = 1 and m.status in (?) and c.type in (?) and c.deactivated = 0
+	and (util = -1 or util > ?);
+	`
+	q2, args, err := sqlx.In(qryCount, status, chatType, now)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return chatIds, count
+}
+
+func (dao *PeerStatusDAO) GetStatuNormalChatIds(limit, offset int32, chatType []int32) ([]int32, int32) {
+	chatIds := make([]int32, 0)
+	now := time.Now().Unix()
+	qry := `
+	select c.id
+	from chat c
+	left join
+	(
+	  select peer_id
+	  from manage_peer_status m
+	  where is_effect = 1 and m.status in (2,3,4)
+	  and (util = -1 or util > ?)
+	) s on s.peer_id = c.id
+	where s.peer_id is null and c.type in (?) and c.deactivated = 0
+	order by id desc limit ? offset ?;
+	`
+	q, args, err := sqlx.In(qry, now, chatType, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return chatIds, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var chatId int32
+		err = rows.Scan(&chatId)
+		raise(err)
+		chatIds = append(chatIds, chatId)
+	}
+
+	qryCount := `
+	select count(*)
+	from chat c
+	left join
+	(
+	  select peer_id
+	  from manage_peer_status m
+	  where is_effect = 1 and m.status in (2,3,4)
+	  and (util = -1 or util > ?)
+	) s on s.peer_id = c.id
+	where s.peer_id is null and c.type in (?) and c.deactivated = 0;
+	`
+	q2, args, err := sqlx.In(qryCount, now, chatType)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return chatIds, count
+}

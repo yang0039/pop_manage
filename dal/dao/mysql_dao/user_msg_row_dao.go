@@ -41,13 +41,13 @@ func (dao *UserMsgRowDAO) GetUserMsgRows(userId, peerId, peerType, msgType int32
 
 	res := make([]*dataobject.UserMsgRow, 0, limit)
 	sqlStr := fmt.Sprintf(`
-	select *
+	select 
+		id, user_id, msg_id, pts, from_msg_id, raw_id, type, from_id, peer_type,
+  		peer_id, reply_to_msg_id, mentioned, media_unread, add_time
 	from %s 
 	where user_id = ? and peer_type = ? and peer_id = ? %s and add_time between ? and ?
 	order by msg_id desc 
 	limit ? offset ?;`, table, typeStr)
-
-	fmt.Println("")
 
 	rows, err := dao.db.Queryx(sqlStr, userId, peerType, peerId, minTime, maxTime, limit, offset)
 	defer rows.Close()

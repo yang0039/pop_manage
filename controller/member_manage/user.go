@@ -78,7 +78,7 @@ func (service *UserController) GetUserInfo(c *gin.Context) {
 	} else if params.Type == 10 {  // 标签
 		//labelId, _ := strconv.Atoi(params.Qry)
 		labelIds := strings.Split(params.Qry, ",")
-		userIds, count = noteDao.GetLabelChatIds(2, params.Limit, params.Offset, labelIds)
+		userIds, count = noteDao.GetLabelUserIds(2, params.Limit, params.Offset, labelIds)
 	} else if params.Type == 11 {  // 活跃日期
 		nums := strings.Split(params.Qry, ",")
 		if len(nums) != 2 {
@@ -123,6 +123,8 @@ func (service *UserController) GetUserInfo(c *gin.Context) {
 		} else {           // 离线
 			userIds, count = userDao.GetUserIdsNotIn(onlineUIds, params.Limit, params.Offset)
 		}
+	} else if params.Type == 15 {  // 查询客服
+		userIds, count = userDao.GetUserIdsOfficial(params.Limit, params.Offset)
 	} else {
 		userIds, count = userDao.GetUserIdsDefault(params.Limit, params.Offset)
 	}
@@ -152,17 +154,25 @@ func (service *UserController) GetChatByUser(c *gin.Context) {
 		params.Limit = 20
 	}
 
-	chatDao := dao.GetChatDAO()
+	queryType := []int32{1,2,3}
+	if params.ChatType == 1 {          // 查群
+		queryType = []int32{1,2}
+	} else if params.ChatType == 2 {   // 查频道
+		queryType = []int32{3}
+	} else if params.ChatType == 3 {
+		queryType = []int32{4}
+	}
+
 	partDao := dao.GetChatParticipantDAO()
 
 	var chatIds []int32
 	var count int32
 	if params.Type == 0 {          // 查询拥有的群
-		chatIds, count = chatDao.GetChatIdsByCreator(params.UserId, params.Limit, params.Offset)
+		chatIds, count = partDao.GetChatIdsByCreator(params.UserId, params.Limit, params.Offset, queryType)
 	} else if params.Type == 1 {   // 查询管理的群
-		chatIds, count = partDao.GetChatByManage(params.UserId, params.Limit, params.Offset)
+		chatIds, count = partDao.GetChatByManage(params.UserId, params.Limit, params.Offset, queryType)
 	} else if params.Type == 2 {   // 所在的群
-		chatIds, count = partDao.GetChatPart(params.UserId, params.Limit, params.Offset)
+		chatIds, count = partDao.GetChatPart(params.UserId, params.Limit, params.Offset, queryType)
 	} else {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -231,6 +241,12 @@ func QryUserInfos(userIds []int32) []map[string]interface{} {
 		m["last_active_time"] = userLasttime[u.Id]
 		m["email"] = userEmail[u.Id]
 		m["online"] = status[u.Id]
+
+		if u.Support {
+			m["is_kefu"] = 1
+		} else {
+			m["is_kefu"] = 0
+		}
 
 		noteM := make(map[string]interface{})
 		noteMap,exit := userNote[u.Id]

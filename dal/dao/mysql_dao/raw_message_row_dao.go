@@ -18,7 +18,7 @@ func (dao *RawMessageRowDAO)GetRawMessageRows(rawIds []int64) map[int64]*dataobj
 	if len(rawIds) == 0 {
 		return res
 	}
-	query, args, err := sqlx.In(`select * from raw_message where raw_id in (?)`, rawIds)
+	query, args, err := sqlx.In(`select id ,raw_id, message_blob, from_id, peer_type, peer_id, views, edit_date, add_time from raw_message where raw_id in (?)`, rawIds)
 	raise(err)
 	rows, err := dao.db.Queryx(query, args...)
 	defer rows.Close()

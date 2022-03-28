@@ -45,7 +45,7 @@ func (dao *UserDAO) GetUsers(userIds []int32) []*dataobject.UserDO {
 	qry := fmt.Sprintf(`
 	select
 	  id, access_hash, first_name, last_name, username, phone,
-	  country_code, about, bot, photo_id, add_time
+	  country_code, about, bot, photo_id, support, add_time
 	from user
 	where id in %s;
 	`, queryType)
@@ -340,6 +340,31 @@ func (dao *UserDAO) GetUserIdsNotIn(uIds[]int32, limit, offset int32) ([]int32, 
 	}
 
 	qryCount := fmt.Sprintf("select id from user where id not in %s;", uidStr)
+	row := dao.db.QueryRow(qryCount)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return res, count
+}
+
+// 查询客服
+func (dao *UserDAO) GetUserIdsOfficial(limit, offset int32) ([]int32, int32) {
+	res := make([]int32, 0)
+	qry := "select id from user where support = 1 order by add_time desc limit ? offset ?;"
+	rows, err := dao.db.Queryx(qry, limit, offset)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return res, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var id int32
+		err = rows.Scan(&id)
+		raise(err)
+		res = append(res, id)
+	}
+
+	qryCount := "select count(*) from user where support = 1;"
 	row := dao.db.QueryRow(qryCount)
 	var count int32
 	err = row.Scan(&count)

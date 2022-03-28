@@ -114,11 +114,13 @@ func (dao *ChatDAO) GetMemberNumChats(start, end int64, num int32) []*dataobject
 */
 
 // 通过群名称获取群id
-func (dao *ChatDAO) GetChatIdsByTitle(title string, limit, offset int32) ([]int32, int32){
+func (dao *ChatDAO) GetChatIdsByTitle(title string, chatType []int32, limit, offset int32) ([]int32, int32){
 	chatIds := make([]int32, 0)
 	title = "%" + title + "%"
-	qry := fmt.Sprintf("select id from chat where deactivated = 0 and title like '%s' limit ? offset ?;", title)
-	rows, err := dao.db.Queryx(qry, limit, offset)
+	qry := fmt.Sprintf("select id from chat where deactivated = 0 and type in (?) and title like '%s' limit ? offset ?;", title)
+	q, args, err := sqlx.In(qry, chatType, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -131,8 +133,10 @@ func (dao *ChatDAO) GetChatIdsByTitle(title string, limit, offset int32) ([]int3
 		chatIds = append(chatIds, chatId)
 	}
 
-	qryCount := fmt.Sprintf("select count(*) from chat where deactivated = 0 and title like '%s' ;", title)
-	row := dao.db.QueryRow(qryCount)
+	qryCount := fmt.Sprintf("select count(*) from chat where deactivated = 0 and type in (?) and title like '%s' ;", title)
+	q2, args, err := sqlx.In(qryCount, chatType)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
@@ -140,10 +144,13 @@ func (dao *ChatDAO) GetChatIdsByTitle(title string, limit, offset int32) ([]int3
 }
 
 // 通过拥有者id获取群id
-func (dao *ChatDAO) GetChatIdsByCreator(creatId, limit, offset int32) ([]int32, int32) {
+func (dao *ChatDAO) GetChatIdsDefault(chatType []int32, limit, offset int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
-	qry :="select id from chat where deactivated = 0 and type != 4 and creator_id = ? limit ? offset ?;"
-	rows, err := dao.db.Queryx(qry, creatId, limit, offset)
+	qry :="select id from chat where deactivated = 0 and type in (?) order by add_time desc limit ? offset ?;"
+	q, args, err := sqlx.In(qry, chatType, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
+	//rows, err := dao.db.Queryx(qry, limit, offset)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -156,33 +163,10 @@ func (dao *ChatDAO) GetChatIdsByCreator(creatId, limit, offset int32) ([]int32, 
 		chatIds = append(chatIds, chatId)
 	}
 
-	qryCount := "select count(*) from chat where deactivated = 0  and type != 4 and creator_id = ?;"
-	row := dao.db.QueryRow(qryCount, creatId)
-	var count int32
-	err = row.Scan(&count)
+	qryCount := "select count(*) from chat where deactivated = 0 and type in (?);"
+	q2, args, err := sqlx.In(qryCount, chatType)
 	raise(err)
-	return chatIds, count
-}
-
-// 通过拥有者id获取群id
-func (dao *ChatDAO) GetChatIdsDefault(limit, offset int32) ([]int32, int32) {
-	chatIds := make([]int32, 0)
-	qry :="select id from chat where deactivated = 0 and type in (1, 2) order by add_time desc limit ? offset ?;"
-	rows, err := dao.db.Queryx(qry, limit, offset)
-	defer rows.Close()
-	if err == sql.ErrNoRows {
-		return chatIds, 0
-	}
-	raise(err)
-	for rows.Next() {
-		var chatId int32
-		err = rows.Scan(&chatId)
-		raise(err)
-		chatIds = append(chatIds, chatId)
-	}
-
-	qryCount := "select count(*) from chat where deactivated = 0 and type in (1, 2);"
-	row := dao.db.QueryRow(qryCount)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
@@ -190,10 +174,12 @@ func (dao *ChatDAO) GetChatIdsDefault(limit, offset int32) ([]int32, int32) {
 }
 
 // 通过创建时间获取群id
-func (dao *ChatDAO) GetChatIdsByCreate(start, end int64, limit, offset int32) ([]int32, int32) {
+func (dao *ChatDAO) GetChatIdsByCreate(start, end int64, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
-	qry :="select id from chat where deactivated = 0 and type in (1,2) and add_time between ? and ? limit ? offset ?;"
-	rows, err := dao.db.Queryx(qry, start, end, limit, offset)
+	qry :="select id from chat where deactivated = 0 and type in (?) and add_time between ? and ? limit ? offset ?;"
+	q, args, err := sqlx.In(qry, chatType, start, end, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -206,8 +192,10 @@ func (dao *ChatDAO) GetChatIdsByCreate(start, end int64, limit, offset int32) ([
 		chatIds = append(chatIds, chatId)
 	}
 
-	qryCount := "select count(*) from chat where deactivated = 0 and type in (1,2) and add_time between ? and ?;"
-	row := dao.db.QueryRow(qryCount, start, end)
+	qryCount := "select count(*) from chat where deactivated = 0  and type in (?) and add_time between ? and ?;"
+	q2, args, err := sqlx.In(qryCount, chatType, start, end)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)

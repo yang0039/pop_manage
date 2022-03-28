@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package mtproto;
+
+import "schema.tl.sync.proto";
+
+enum TLConstructor2 {
+  CRC32_UNKNOWN2 = 0;
+  CRC32_jsonproto_call = 468817387;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// jsonproto.call#1bf195eb cmd:int data:string = DataJSON;
+message TL_jsonproto_call {
+  int32 cmd = 1;
+  string data = 2;
+}
+
+service RPCJsonproto {
+  // jsonproto.call#1bf195eb cmd:int data:string = DataJSON;
+  rpc jsonproto_call(TL_jsonproto_call) returns (DataJSON) {}
+}

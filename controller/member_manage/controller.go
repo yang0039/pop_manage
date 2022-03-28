@@ -19,5 +19,6 @@ func ChatUserRegister(group *gin.RouterGroup) {
 	group.GET("/query_user_contact", service.UserContact)
 	group.GET("/query_user_dialogs", service.UserDialogs)
 	group.GET("/query_user_relation", service.UserRelation)
+	group.POST("/set_official_user", service.SetOfficialUser)
 }
 

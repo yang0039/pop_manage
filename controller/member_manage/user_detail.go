@@ -179,7 +179,7 @@ func GetUserDialog(uid, limit, offset int32) ([]map[string]int32, int32) {
 	r := &goredis.ZRangeBy{
 		Max:    "2147483647",
 		Min:    "0",
-		Offset: int64(limit * offset),
+		Offset: int64(offset),
 		Count:  int64(limit),
 	}
 	dialogs, err := redis_client.RedisCache.ZRevRangeByScoreWithScores(zKey, r).Result()

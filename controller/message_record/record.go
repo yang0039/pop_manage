@@ -221,12 +221,18 @@ func UserMsgToMessage(msgs []*dataobject.UserMsgRow) []*dto.Message {
 	for _, m := range msgs {
 		msg := chatapi.User_assemble(m, rawMap[m.RawId])
 		msgType := ToApiMsgType(int32(m.Type))
+		mess := msg.Data2.Message
+		if mess == "" {
+			if msg.Data2.Action != nil {
+				mess = msg.Data2.Action.Data2.Message
+			}
+		}
 		message := &dto.Message{
 			MsgId:   msg.Data2.Id,
 			From:    GetUser(msg.Data2.FromId),
 			Peer:    GetPeer(rawMap[m.RawId].PeerType, rawMap[m.RawId].PeerId),
 			Date:    msg.Data2.Date,
-			Message: msg.Data2.Message,
+			Message: mess,
 			MsgType: msgType,
 			Url:     getFileUrl(msgType, msg),
 		}

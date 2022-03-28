@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"github.com/jmoiron/sqlx"
 	"pop-api/baselib/logger"
+	"pop-api/baselib/util"
 	"pop-api/dal/dataobject"
 	"strconv"
+	"time"
 )
 
 var Dbindex int
@@ -38,16 +40,32 @@ func NewCommonDAO(db *sqlx.DB) *CommonDAO {
 
 func (dao *CommonDAO) GetActiveUserCount(start, end int64) int32 {
 	qry := `select count(*) count from (select from_id from raw_message where add_time between ? and ? group by from_id) d;`
-	row := dao.db.QueryRow(qry, start, end)
+	row2 := dao.db.QueryRow(qry, start, end)
 	var count int32
-	err := row.Scan(&count)
+	err := row2.Scan(&count)
 	raise(err)
 	return count
+
+	/*
+	qry1 := `select count(*) count from (select user_id from user_msgbox1 where add_time between ? and ? group by user_id) d;`
+	row := dao.db.QueryRow(qry1, start, end)
+	var count1 int32
+	err := row.Scan(&count1)
+	raise(err)
+
+	qry2 := `select count(*) count from (select user_id from user_msgbox2 where add_time between ? and ? group by user_id) d;`
+	row2 := dao.db.QueryRow(qry2, start, end)
+	var count2 int32
+	err = row2.Scan(&count2)
+	raise(err)
+	*/
+
+	//return count1 + count2
 }
 
-func (dao *CommonDAO) GetSendMsgCount(start, end int64) int32 {
-	qry := `select count(*) count from raw_message where add_time between ? and ?;`
-	row := dao.db.QueryRow(qry, start, end)
+func (dao *CommonDAO) GetSendMsgCount() int32 {
+	qry := `select count(*) count from raw_message;`
+	row := dao.db.QueryRow(qry)
 	var count int32
 	err := row.Scan(&count)
 	raise(err)
@@ -97,10 +115,12 @@ func (dao *CommonDAO) GetActiveChatIds(start, end int64) []int32 {
 	return ids
 }
 
-func (dao *CommonDAO) GetChatByActive(start, end int64, limit, offset int32) ([]int32, int32) {
+func (dao *CommonDAO) GetChatByActive(start, end int64, limit, offset int32, chatType []int32) ([]int32, int32) {
 	ids := make([]int32, 0)
-	qry := "select peer_id from raw_message r left join chat c on r.peer_id = c.id where peer_type in (3,4) and c.type in (1,2) and r.add_time between ? and ? group by peer_id limit ? offset ?;"
-	rows, err := dao.db.Queryx(qry, start, end, limit, offset)
+	qry := "select peer_id from raw_message r left join chat c on r.peer_id = c.id where peer_type in (3,4) and c.type in (?) and r.add_time between ? and ? group by peer_id limit ? offset ?;"
+	q, args, err := sqlx.In(qry, chatType, start, end, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return ids, 0
@@ -113,8 +133,10 @@ func (dao *CommonDAO) GetChatByActive(start, end int64, limit, offset int32) ([]
 		ids = append(ids, id)
 	}
 
-	qryCount := "select count(*) c from(select peer_id from raw_message r left join chat c on r.peer_id = c.id where peer_type in (3,4) and c.type in (1,2) and r.add_time between ? and ? group by peer_id) d;"
-	row := dao.db.QueryRow(qryCount, start, end)
+	qryCount := "select count(*) c from(select peer_id from raw_message r left join chat c on r.peer_id = c.id where peer_type in (3,4) and c.type in (?) and r.add_time between ? and ? group by peer_id) d;"
+	q2, args, err := sqlx.In(qryCount, chatType, start, end)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
@@ -163,7 +185,7 @@ func (dao *CommonDAO) GetChatBaseInfo(chatIds []int32) []map[string]interface{} 
 	}
 	qry := fmt.Sprintf(`
 	select
-	  c.id chat_id, count(p.id) num, 
+	  c.id chat_id, count(p.id) num,
       sum(
 		  case ifnull(p.type,0)
 		  when  0 then 0
@@ -172,7 +194,7 @@ func (dao *CommonDAO) GetChatBaseInfo(chatIds []int32) []map[string]interface{} 
       c.title, c.type, c.creator_id, c.add_time
 	from chat_participant p
 	right join chat c on p.chat_id = c.id
-	where c.deactivated = 0 and c.type in (1, 2)
+	where c.deactivated = 0 and c.type in (1, 2, 3, 4)
 	%s
 	group by c.id order by num;
 	`, sql2)
@@ -194,84 +216,12 @@ func (dao *CommonDAO) GetChatBaseInfo(chatIds []int32) []map[string]interface{} 
 		m["member_num"] = num
 		m["manage_num"] = manageNum
 		m["title"] = title
-		m["chat_type"] = chatType
+		m["chat_type"] = util.DbToApiChatType(chatType)
 		m["creator_id"] = creatorId
 		m["add_time"] = addTime
 		chats = append(chats, m)
 	}
 	return chats
-}
-
-func (dao *CommonDAO) Get30DaysActiveUser(start int64) []map[string]interface{} {
-	dataNums := make([]map[string]interface{}, 0)
-	qry := `
-		select
-		  date_time, count(from_id) member_num
-		from
-		(
-		  SELECT
-		  from_id,
-		  from_unixtime(add_time, '%Y-%m-%d') date_time
-		  FROM raw_message
-		  WHERE add_time >= ?
-		  group by from_id, date_time
-		) d
-		group by date_time order by date_time;
-		`
-	rows, err := dao.db.Queryx(qry, start)
-	defer rows.Close()
-	if err == sql.ErrNoRows {
-		return dataNums
-	}
-	raise(err)
-	for rows.Next() {
-		var date string
-		var num int32
-		err = rows.Scan(&date, &num)
-		raise(err)
-		m := map[string]interface{}{
-			"date": date,
-			"num":  num,
-		}
-		dataNums = append(dataNums, m)
-	}
-	return dataNums
-}
-
-func (dao *CommonDAO) Get30DaysActiveChat(start int64) []map[string]interface{} {
-	dataNums := make([]map[string]interface{}, 0)
-	qry := `
-		select
-		  date_time, count(from_id) member_num
-		from
-		(
-		  SELECT
-		  from_id,
-		  from_unixtime(add_time, '%Y-%m-%d') date_time
-		  FROM raw_message
-		  WHERE add_time >= ? and peer_type in (3, 4)
-		  group by from_id, date_time
-		) d
-		group by date_time order by date_time;
-		`
-	rows, err := dao.db.Queryx(qry, start)
-	defer rows.Close()
-	if err == sql.ErrNoRows {
-		return dataNums
-	}
-	raise(err)
-	for rows.Next() {
-		var date string
-		var num int32
-		err = rows.Scan(&date, &num)
-		raise(err)
-		m := map[string]interface{}{
-			"date": date,
-			"num":  num,
-		}
-		dataNums = append(dataNums, m)
-	}
-	return dataNums
 }
 
 func (dao *CommonDAO) GetChatLastActiveDate(chatIds []int32) map[int32]int32 {
@@ -776,3 +726,139 @@ func (dao *CommonDAO) GetUserGender(ids []int32) map[int32]int32 {
 	}
 	return res
 }
+
+func (dao *CommonDAO) GetDayActiveUser(start, end int64) int32 {
+	sqlStr :=`
+	select
+	  count(from_id) count
+	from
+	(
+	  SELECT
+	  from_id
+	  FROM raw_message
+	  WHERE add_time between ? and ?
+	  group by from_id
+	) d;
+	`
+	row := dao.db.QueryRowx(sqlStr, start, end)
+	var count int32
+	err := row.Scan(&count)
+	if err == sql.ErrNoRows {
+		return 0
+	}
+	raise(err)
+	return count
+}
+
+func (dao *CommonDAO) GetDayActiveChat(start, end int64) int32 {
+	sqlStr :=`
+	select
+	  count(from_id) count
+	from
+	(
+	  SELECT
+	  from_id
+	  FROM raw_message
+	  WHERE add_time between ? and ? and peer_type in (3, 4)
+	  group by from_id
+	) d;
+	`
+	row := dao.db.QueryRowx(sqlStr, start, end)
+	var count int32
+	err := row.Scan(&count)
+	if err == sql.ErrNoRows {
+		return 0
+	}
+	raise(err)
+	return count
+}
+
+func (dao *CommonDAO) AddActieCache(uCount, cCount int32, date string) {
+	sqlStr := "insert into manage_active_data (date, user_count, chat_count, add_time) values (?, ?, ?, ?);"
+	_, err := dao.db.Exec(sqlStr, date, uCount, cCount, time.Now().Unix())
+	raise(err)
+}
+
+func (dao *CommonDAO) Get30DaysActiveData(start, end string) ([]map[string]interface{}, []map[string]interface{}) {
+	userNums := make([]map[string]interface{}, 0)
+	chatNums := make([]map[string]interface{}, 0)
+	qry := "select date, user_count, chat_count from manage_active_data where date between ? and ?;"
+	rows, err := dao.db.Queryx(qry, start, end)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return userNums, chatNums
+	}
+	raise(err)
+	for rows.Next() {
+		var date string
+		var uNum, cNum int32
+		err = rows.Scan(&date, &uNum, &cNum)
+		raise(err)
+		m := map[string]interface{}{
+			"date": date,
+			"num":  uNum,
+		}
+		userNums = append(userNums, m)
+
+		m2 := map[string]interface{}{
+			"date": date,
+			"num":  cNum,
+		}
+		chatNums = append(chatNums, m2)
+	}
+
+	timeStr := time.Now().Add(24 * time.Hour).Format("2006-01-02")
+	t, _ := time.Parse("2006-01-02", timeStr)
+	e := t.Unix() - 8 *3600
+	s := e - 3600*24
+
+	u := dao.GetDayActiveUser(s, e)
+	c := dao.GetDayActiveChat(s, e)
+	todayUMap := map[string]interface{} {
+		"date": t.Add(-16 * time.Hour).Format("2006-01-02"),
+		"num":  u,
+	}
+	todayCMap := map[string]interface{} {
+		"date": t.Add(-16 * time.Hour).Format("2006-01-02"),
+		"num":  c,
+	}
+	userNums = append(userNums, todayUMap)
+	chatNums = append(chatNums, todayCMap)
+	return userNums,chatNums
+}
+
+//func (dao *CommonDAO) GetDayActiveChat() []map[string]interface{} {
+//	dataNums := make([]map[string]interface{}, 0)
+//	qry := `
+//		select
+//		  date_time, count(from_id) member_num
+//		from
+//		(
+//		  SELECT
+//		  from_id,
+//		  from_unixtime(add_time, '%Y-%m-%d') date_time
+//		  FROM raw_message
+//		  WHERE add_time >= ? and peer_type in (3, 4)
+//		  group by from_id, date_time
+//		) d
+//		group by date_time order by date_time;
+//		`
+//	rows, err := dao.db.Queryx(qry, start)
+//	defer rows.Close()
+//	if err == sql.ErrNoRows {
+//		return dataNums
+//	}
+//	raise(err)
+//	for rows.Next() {
+//		var date string
+//		var num int32
+//		err = rows.Scan(&date, &num)
+//		raise(err)
+//		m := map[string]interface{}{
+//			"date": date,
+//			"num":  num,
+//		}
+//		dataNums = append(dataNums, m)
+//	}
+//	return dataNums
+//}

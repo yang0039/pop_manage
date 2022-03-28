@@ -64,8 +64,6 @@ func ChatInfo(chatIds []int32) []map[string]interface{}{
 		} else {
 			m["note"] = nil
 		}
-
-
 		status := chatStatus[chatId]
 		statusMap := map[string]interface{}{
 			"status": 1,
@@ -75,6 +73,7 @@ func ChatInfo(chatIds []int32) []map[string]interface{}{
 		if status != nil {
 			if status.Status == 3 && status.Util < now {
 				statusMap["status"] = 1
+				go peerDao.DelStatus(chatId)
 			} else {
 				statusMap["status"] = status.Status
 				statusMap["util"] = status.Util

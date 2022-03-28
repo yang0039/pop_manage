@@ -55,6 +55,16 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 	noteDao := dao.GetNoteDAO()
 	chatPartDao := dao.GetChatParticipantDAO()
 	comDao := dao.GetCommonDAO()
+	statusDao := dao.GetPeerStatusDAO()
+
+	queryType := []int32{1,2,3}
+	if params.ChatType == 1 {          // 查群
+		queryType = []int32{1,2}
+	} else if params.ChatType == 2 {   // 查频道
+		queryType = []int32{3}
+	} else if params.ChatType == 3 {
+		queryType = []int32{4}
+	}
 
 	var chatIds []int32
 	var count int32
@@ -63,7 +73,7 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 			return
 		}
-		chatIds, count = chatDao.GetChatIdsByTitle(params.Qry, params.Limit, params.Offset)
+		chatIds, count = chatDao.GetChatIdsByTitle(params.Qry, queryType, params.Limit, params.Offset)
 	} else if params.Type == 2 {
 
 	} else if params.Type == 3 { // 人数范围
@@ -78,7 +88,7 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 			return
 		}
-		chatIds, count = chatPartDao.GetChatByMemNum(int32(min), int32(max), params.Limit, params.Offset)
+		chatIds, count = chatPartDao.GetChatByMemNum(int32(min), int32(max), params.Limit, params.Offset, queryType)
 
 	} else if params.Type == 4 {
 		cId, _ := strconv.Atoi(params.Qry)
@@ -86,29 +96,42 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 			return
 		}
-		chatIds, count = chatDao.GetChatIdsByCreator(int32(cId), params.Limit, params.Offset)
+		chatIds, count = chatPartDao.GetChatIdsByCreator(int32(cId), params.Limit, params.Offset, queryType)
 	} else if params.Type == 5 { // 管理者id
 		manId, _ := strconv.Atoi(params.Qry)
 		if manId == 0 {
 			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 			return
 		}
-		chatIds, count = chatPartDao.GetChatByManage(int32(manId), params.Limit, params.Offset)
+		chatIds, count = chatPartDao.GetChatByManage(int32(manId), params.Limit, params.Offset, queryType)
 	} else if params.Type == 6 {
-		chatIds, count = noteDao.GetChatByNote(params.Qry, params.Limit, params.Offset)
+		chatIds, count = noteDao.GetChatByNote(params.Qry, params.Limit, params.Offset, queryType)
 	} else if params.Type == 7 {
 		cId, _ := strconv.Atoi(params.Qry)
 		chatIds = []int32{int32(cId)}
 		count = 1
 	} else if params.Type == 8 {   // 8.群状态
-		// todo
+		var status []int32
+		if params.Qry == "1" {   // 正常的群
+			chatIds, count = statusDao.GetStatuNormalChatIds(params.Limit, params.Offset, queryType)
+			//status = []int32{2}
+		} else if params.Qry == "2" {
+			status = []int32{2}
+			chatIds, count = statusDao.GetStatuChatIds(status, params.Limit, params.Offset, queryType)
+		} else if params.Qry == "3" {
+			status = []int32{3}
+			chatIds, count = statusDao.GetStatuChatIds(status, params.Limit, params.Offset, queryType)
+		} else {
+			status = []int32{4}
+			chatIds, count = statusDao.GetStatuChatIds(status, params.Limit, params.Offset, queryType)
+		}
 	} else if params.Type == 9 {   // 9.群成员
 		memId, _ := strconv.Atoi(params.Qry)
-		chatIds, count = chatPartDao.GetChatByMember(int32(memId), params.Limit, params.Offset)
+		chatIds, count = chatPartDao.GetChatByMember(int32(memId), params.Limit, params.Offset, queryType)
 	} else if params.Type == 10 {  // 10.群标签
 		labelIds := strings.Split(params.Qry, ",")
 		//labelId, _ := strconv.Atoi(params.Qry)
-		chatIds, count = noteDao.GetLabelChatIds(3, params.Limit, params.Offset, labelIds)
+		chatIds, count = noteDao.GetLabelChatIds(3, params.Limit, params.Offset, labelIds, queryType)
 	} else if params.Type == 11 {  // 11.活跃日期
 		nums := strings.Split(params.Qry, ",")
 		if len(nums) != 2 {
@@ -117,7 +140,7 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 		}
 		start, _ := strconv.Atoi(nums[0])
 		end, _ := strconv.Atoi(nums[1])
-		chatIds, count = comDao.GetChatByActive(int64(start), int64(end), params.Limit, params.Offset)
+		chatIds, count = comDao.GetChatByActive(int64(start), int64(end), params.Limit, params.Offset, queryType)
 	} else if params.Type == 12 {  // 12.创建日期
 		nums := strings.Split(params.Qry, ",")
 		if len(nums) != 2 {
@@ -126,9 +149,9 @@ func (service *ChatController) GetChatInfo(c *gin.Context) {
 		}
 		start, _ := strconv.Atoi(nums[0])
 		end, _ := strconv.Atoi(nums[1])
-		chatIds, count = chatDao.GetChatIdsByCreate(int64(start), int64(end), params.Limit, params.Offset)
+		chatIds, count = chatDao.GetChatIdsByCreate(int64(start), int64(end), params.Limit, params.Offset, queryType)
 	} else {
-		chatIds, count = chatDao.GetChatIdsDefault(params.Limit, params.Offset)
+		chatIds, count = chatDao.GetChatIdsDefault(queryType, params.Limit, params.Offset)
 	}
 
 	logger.LogSugar.Infof("chatIds:%v, count:%d", chatIds, count)

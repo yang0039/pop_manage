@@ -7,10 +7,11 @@ type NoteObj struct {
 }
 
 type QryType struct {
-	Type   int32  `json:"type" form:"type"`
-	Qry    string `json:"qry" form:"qry"`
-	Limit  int32  `json:"limit" form:"limit"`
-	Offset int32  `json:"offset" form:"offset"`
+	Type     int32  `json:"type" form:"type"`
+	ChatType int32  `json:"chat_type" form:"chat_type"`
+	Qry      string `json:"qry" form:"qry"`
+	Limit    int32  `json:"limit" form:"limit"`
+	Offset   int32  `json:"offset" form:"offset"`
 }
 
 type QryUser struct {
@@ -21,10 +22,11 @@ type QryUser struct {
 }
 
 type UserChat struct {
-	Type   int32 `json:"type" form:"type"`
-	UserId int32 `json:"user_id" form:"user_id"`
-	Limit  int32 `json:"limit" form:"limit"`
-	Offset int32 `json:"offset" form:"offset"`
+	Type     int32 `json:"type" form:"type"`
+	ChatType int32 `json:"chat_type" form:"chat_type"`
+	UserId   int32 `json:"user_id" form:"user_id"`
+	Limit    int32 `json:"limit" form:"limit"`
+	Offset   int32 `json:"offset" form:"offset"`
 }
 
 type Account struct {
@@ -37,6 +39,11 @@ type PhoneTransaction struct {
 	Qry    string `json:"qry" form:"qry"`
 	Limit  int32  `json:"limit" form:"limit"`
 	Offset int32  `json:"offset" form:"offset"`
+}
+
+type SetUserOfficial struct {
+	UserId    int32  `json:"user_id"`
+	OperaType int32  `json:"opera_type"` // 1:设为客服， 2：解除客服
 }
 
 type Banned struct {

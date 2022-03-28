@@ -12,17 +12,24 @@ import (
 func (service *DashboardController) ActiveData(c *gin.Context) {
 
 	//end := time.Now().Unix()
-	y, m, d := time.Now().Date()
-	time1 := time.Date(y, m, d, 0, 0, 0, 0, time.FixedZone("CST", 3600*8))
-	Before30Unix := time1.Add(-30 * 24 * time.Hour).Unix()
+	//y, m, d := time.Now().Date()
+	//time1 := time.Date(y, m, d, 0, 0, 0, 0, time.FixedZone("CST", 3600*8))
+	//Before30Unix := time1.Add(-30 * 24 * time.Hour).Unix()
 
+	now := time.Now()
+	end := time.Date(now.Year(),  now.Month(), now.Day(), 0, 0, 0, 0, time.Now().Location())
+	start := end.Add(-29 * 24 * time.Hour)
+	s := start.Format("2006-01-02")
+	e := end.Format("2006-01-02")
 	commomDao := dao.GetCommonDAO()
 
 	// 前30日每日活跃账号图表
-	daysActiveUser := commomDao.Get30DaysActiveUser(Before30Unix)
-
+	//daysActiveUser := commomDao.Get30DaysActiveUser(Before30Unix)
 	// 前30日每日活跃群组图表
-	daysActiveChat := commomDao.Get30DaysActiveChat(Before30Unix)
+	//daysActiveChat := commomDao.Get30DaysActiveChat(Before30Unix)
+
+	// 前30日每日活跃图表
+	daysActiveUser, daysActiveChat := commomDao.Get30DaysActiveData(s,e)
 
 	data := map[string]interface{}{
 		"day_active_user": daysActiveUser,

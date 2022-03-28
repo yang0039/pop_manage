@@ -233,5 +233,6 @@ func User_assemble(msg *dataobject.UserMsgRow, raw *dataobject.RawMessageRow) *m
 	message.Data2.ReplyToMsgId = msg.ReplyToMsgId
 	message.Data2.Views = raw.Views
 	message.Data2.EditDate = raw.EditDate
+	logger.LogSugar.Infof("message:%v", message)
 	return message
 }

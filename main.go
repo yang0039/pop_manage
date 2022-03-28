@@ -6,6 +6,7 @@ import (
 	"github.com/ip2location/ip2location-go"
 	"go.uber.org/zap"
 	"pop-api/baselib/logger"
+	"pop-api/baselib/minio_client"
 	"pop-api/baselib/mysql_client"
 	"pop-api/baselib/redis_client"
 	"pop-api/baselib/util"
@@ -13,6 +14,7 @@ import (
 	"pop-api/controller/auth"
 	"pop-api/controller/chat_manage"
 	"pop-api/controller/dashboard"
+	"pop-api/controller/data_cache"
 	"pop-api/controller/member_manage"
 	"pop-api/controller/message_record"
 	"pop-api/controller/system_manage"
@@ -47,13 +49,15 @@ func main() {
 	dao.InstallMysqlDAOManager(mysql_client.NewSqlxDB(Conf.Mysql), Conf.Dbindex)
 	redis_client.InstallRedisClientManager(*Conf.Redis)
 
-	//minio_client.InitData(Conf.Minio)
+	minio_client.InitData(Conf.Minio)
 	// 先写固定值，后续从配置文件获取
 	//minio_client.InitClientConfig("127.0.0.1:9123", "127.0.0.1:9000", "Wink@YaMyB2GmOEetkib6O#+KRfuze6T", "DQMYMM5HIJ4EF2XROGRK", "UooDmD1HwHvv67fjuVHYFpQcMGmyUCjyJt+B+n24")
 
 	//minio_client.PresignedGetObject("photo", "0/20220118/1483260720857632768.jpg")
 	//fmt.Println("url=", url)
 
+	// 定时任务
+	timeTask()
 
 	gin.SetMode("release")
 	router := Default()
@@ -119,3 +123,7 @@ func main() {
 //	h.Write([]byte(str))
 //	return hex.EncodeToString(h.Sum(nil))
 //}
+
+func timeTask() {
+	go data_cache.DailyActiveData()
+}

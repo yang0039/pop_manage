@@ -68,7 +68,7 @@ func (dao *NoteDAO) GetNote(peerIds []int32) map[int32]map[string]string {
 	return noteMap
 }
 
-func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32) ([]int32, int32) {
+func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
 	if note == "" {
 		return chatIds, 0
@@ -77,10 +77,12 @@ func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32) ([]int32, in
 	select peer_id
 	from manage_note n
 	left join chat c on n.peer_id = c.id
-	where peer_type in (3, 4) and note = ? and deactivated = 0 and c.type in (1, 2)
+	where peer_type in (3, 4) and c.type in (?) and note = ? and deactivated = 0
 	limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry, note, limit, offset)
+	q, args, err := sqlx.In(qry, chatType, note, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds, 0
@@ -97,9 +99,11 @@ func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32) ([]int32, in
 	select count(*) count
 	from manage_note n
 	left join chat c on n.peer_id = c.id
-	where peer_type in (3, 4) and note = ? and deactivated = 0 and c.type in (1, 2)
+	where peer_type in (3, 4) and c.type in (?) and note = ? and deactivated = 0
 	`
-	row := dao.db.QueryRow(qryCount, note)
+	q2, args, err := sqlx.In(qryCount, chatType, note)
+	raise(err)
+	row := dao.db.QueryRow(q2, args...)
 	var count int32
 	err = row.Scan(&count)
 	raise(err)
@@ -162,7 +166,54 @@ func (dao *NoteDAO) GetLabbelNoteCount() map[string]int32 {
 }
 
 
-func (dao *NoteDAO) GetLabelChatIds(peerType, limit, offset int32, ids []string) ([]int32, int32) {
+func (dao *NoteDAO) GetLabelChatIds(peerType, limit, offset int32, ids []string, chatType []int32) ([]int32, int32) {
+	res := make([]int32, 0)
+
+	if len(ids) == 0 {
+		return res, 0
+	}
+	qry := `
+	select peer_id
+	from manage_note n
+	left join chat c on n.peer_id = c.id
+	where peer_type = ? and label_id in (?) and c.type in (?)
+	group by peer_id limit ? offset ?;
+	`
+	query, args, err := sqlx.In(qry, peerType, ids, chatType, limit, offset)
+	raise(err)
+	rows, err := dao.db.Queryx(query, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return res, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var peerId int32
+		err = rows.Scan(&peerId)
+		raise(err)
+		res = append(res, peerId)
+	}
+
+	qryCount := `
+	select count(*) c
+	FROM (
+		SELECT peer_id
+		FROM manage_note n
+		left join chat c on n.peer_id = c.id
+		WHERE peer_type = ? AND label_id in (?) and c.type in (?)
+		GROUP BY peer_id
+	) c;
+	`
+	query2, args, err := sqlx.In(qryCount, peerType, ids, chatType)
+	raise(err)
+	row := dao.db.QueryRow(query2, args...)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return res, count
+}
+
+func (dao *NoteDAO) GetLabelUserIds(peerType, limit, offset int32, ids []string) ([]int32, int32) {
 	res := make([]int32, 0)
 
 	if len(ids) == 0 {
@@ -193,7 +244,7 @@ func (dao *NoteDAO) GetLabelChatIds(peerType, limit, offset int32, ids []string)
 	select count(*) c
 	FROM (
 		SELECT peer_id
-		FROM manage_note
+		FROM manage_note 
 		WHERE peer_type = ? AND label_id in (?)
 		GROUP BY peer_id
 	) c;

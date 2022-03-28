@@ -34,10 +34,12 @@ func (service *DashboardController) TotalData(c *gin.Context) {
 	chatNum := chatDao.GetChatNum(start, end)
 
 	// 活跃账号数
-	activeCountALl := commomDao.GetActiveUserCount(start, end)
+	// todo 先给0，这个非常耗时
+	activeCountALl := 0
+	//activeCountALl := commomDao.GetActiveUserCount(start, end)
 
 	// 发送消息的数量
-	msgCount := commomDao.GetSendMsgCount(start, end)
+	msgCount := commomDao.GetSendMsgCount()
 
 	// 语音通话发起数
 	callNum := callDao.GetCallNum(start, end)

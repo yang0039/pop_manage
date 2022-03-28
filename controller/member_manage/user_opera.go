@@ -42,15 +42,46 @@ func (service *UserController) BannedUser(c *gin.Context) {
 		Reason:    banned.Reason,
 	}
 	req := dto.ApiReq{
-		From: "manager",
+		From:   "manager",
 		Method: public.BannedUser,
-		Data: bannedReq,
+		Data:   bannedReq,
 	}
 	m := map[string]interface{}{
-		"data":req,
+		"data": req,
 	}
-	body,_ := json.Marshal(m)
+	body, _ := json.Marshal(m)
 
+	err := fetchdata("POST", url, nil, body, nil)
+	if err != nil {
+		middleware.ResponseError(c, 500, "系统错误", err)
+		return
+	}
+	middleware.ResponseSuccess(c, nil)
+}
+
+// 用户设置为客服
+func (service *UserController) SetOfficialUser(c *gin.Context) {
+	url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
+	userSet := &dto.SetUserOfficial{}
+	if err := c.ShouldBind(userSet); err != nil {
+		middleware.ResponseError(c, 500, "系统错误", err)
+		return
+	}
+	if userSet.UserId == 0 || (userSet.OperaType != 1 && userSet.OperaType != 2) {
+		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", userSet)))
+		return
+	}
+
+	data := map[string]int32{
+		"user_id":    userSet.UserId,
+		"opera_type": userSet.OperaType,
+	}
+
+	m := map[string]interface{}{
+		"cmd":  2001,
+		"data": data,
+	}
+	body, _ := json.Marshal(m)
 	err := fetchdata("POST", url, nil, body, nil)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
@@ -73,12 +104,11 @@ func (service *UserController) GetUserBanned(c *gin.Context) {
 	banneds, count := bannedDao.GetUserBanneds(params.UserId, params.Limit, params.Offset)
 	data := map[string]interface{}{
 		"banned": banneds,
-		"count": count,
+		"count":  count,
 	}
 
 	middleware.ResponseSuccess(c, data)
 }
-
 
 // 释放popid
 func (service *UserController) DelPopId(c *gin.Context) {

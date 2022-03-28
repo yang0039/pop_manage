@@ -28,7 +28,7 @@ DST_DIR=..
 # 简书著作权归作者所有，任何形式的转载都请联系作者获得授权并注明出处。
 
 #./codegen.sh
-protoc -I=$SRC_DIR --gogofaster_out=plugins=grpc:$DST_DIR/ $SRC_DIR/*.proto
+protoc -I=$SRC_DIR --gogofaster_out=plugins=grpc:$DST_DIR/ $SRC_DIR/json.proto
 # protoc -I=$SRC_DIR --gogo_out=plugins=grpc:$DST_DIR/ $SRC_DIR/*.proto
 # protoc -I=$SRC_DIR --gofast_out=plugins=grpc:$DST_DIR/ $SRC_DIR/*.proto
 
