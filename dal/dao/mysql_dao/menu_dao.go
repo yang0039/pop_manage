@@ -16,7 +16,7 @@ func NewMenuDAO(db *sqlx.DB) *MenuDAO {
 
 func (dao *MenuDAO) GetAllMenu() []dataobject.Menu {
 	res := make([]dataobject.Menu, 0)
-	qry := `select id, name, title, add_time from manage_menu;`
+	qry := `select id, name, title, add_time from manage_menu order by id_rank;`
 	rows, err := dao.db.Queryx(qry)
 	defer rows.Close()
 	if err == sql.ErrNoRows {

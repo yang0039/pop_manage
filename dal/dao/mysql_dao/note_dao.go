@@ -17,14 +17,20 @@ func NewNoteDAO(db *sqlx.DB) *NoteDAO {
 
 
 func (dao *NoteDAO) AddNote(labelIds []string, peerType, peerId int32, note string) {
+
+	dao.db.Exec("update manage_note set is_delete = 1 where peer_id = ?", peerId)
+	//sql := `
+	//insert into manage_note (label_id, peer_type, peer_id, note, updated_at)
+	//values (?, ?, ?, ?, ?)
+	//on DUPLICATE KEY UPDATE note = ?, label_id = ?;
+	//`
 	sql := `
 	insert into manage_note (label_id, peer_type, peer_id, note, updated_at)
-	values (?, ?, ?, ?, ?)
-	on DUPLICATE KEY UPDATE note = ?, label_id = ?;
+	values (?, ?, ?, ?, ?);
 	`
 	now := time.Now().Unix()
 	for _, labelId := range labelIds {
-		_, err := dao.db.Exec(sql, labelId, peerType, peerId, note, now, note, labelId)
+		_, err := dao.db.Exec(sql, labelId, peerType, peerId, note, now)
 		raise(err)
 	}
 }
@@ -46,7 +52,7 @@ func (dao *NoteDAO) GetNote(peerIds []int32) map[int32]map[string]string {
 		ifnull(group_concat(concat(label_id,'_@_', label_name)),'') labels, max(note) note
 	from manage_note n
 	left join manage_label l on n.label_id = l.id
-	where peer_id in %s group by peer_id;
+	where n.is_delete = 0 and peer_id in %s group by peer_id;
 	`, sql2)
 
 	rows, err := dao.db.Queryx(qry)
@@ -77,7 +83,7 @@ func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32, chatType []i
 	select peer_id
 	from manage_note n
 	left join chat c on n.peer_id = c.id
-	where peer_type in (3, 4) and c.type in (?) and note = ? and deactivated = 0
+	where peer_type in (3, 4) and c.type in (?) and n.is_delete = 0 and note = ? and deactivated = 0
 	limit ? offset ?;
 	`
 	q, args, err := sqlx.In(qry, chatType, note, limit, offset)
@@ -99,7 +105,7 @@ func (dao *NoteDAO) GetChatByNote(note string, limit, offset int32, chatType []i
 	select count(*) count
 	from manage_note n
 	left join chat c on n.peer_id = c.id
-	where peer_type in (3, 4) and c.type in (?) and note = ? and deactivated = 0
+	where peer_type in (3, 4) and c.type in (?) and n.is_delete = 0 and note = ? and deactivated = 0
 	`
 	q2, args, err := sqlx.In(qryCount, chatType, note)
 	raise(err)
@@ -118,7 +124,7 @@ func (dao *NoteDAO) GetUserByNote(note string, limit, offset int32) ([]int32, in
 	qry := `
 	select peer_id
 	from manage_note n
-	where peer_type = 2 and note = ? limit ? offset ?;
+	where peer_type = 2 and n.is_delete = 0 and note = ? limit ? offset ?;
 	`
 	rows, err := dao.db.Queryx(qry, note, limit, offset)
 	defer rows.Close()
@@ -133,7 +139,7 @@ func (dao *NoteDAO) GetUserByNote(note string, limit, offset int32) ([]int32, in
 		uIds = append(uIds, chatId)
 	}
 
-	qryCount := "select count(*) from manage_note where peer_type = 2 and note = ?;"
+	qryCount := "select count(*) from manage_note where is_delete = 0 and peer_type = 2 and note = ?;"
 	row := dao.db.QueryRow(qryCount, note)
 	var count int32
 	err = row.Scan(&count)
@@ -147,6 +153,7 @@ func (dao *NoteDAO) GetLabbelNoteCount() map[string]int32 {
 	select
 	concat(label_id, '_', peer_type) ptype, count(*) count
 	from manage_note
+	where is_delete = 0
 	group by label_id, peer_type;
 	`
 	rows, err := dao.db.Queryx(qry)
@@ -176,7 +183,7 @@ func (dao *NoteDAO) GetLabelChatIds(peerType, limit, offset int32, ids []string,
 	select peer_id
 	from manage_note n
 	left join chat c on n.peer_id = c.id
-	where peer_type = ? and label_id in (?) and c.type in (?)
+	where peer_type = ? and  n.is_delete = 0 and label_id in (?) and c.type in (?)
 	group by peer_id limit ? offset ?;
 	`
 	query, args, err := sqlx.In(qry, peerType, ids, chatType, limit, offset)
@@ -200,7 +207,7 @@ func (dao *NoteDAO) GetLabelChatIds(peerType, limit, offset int32, ids []string,
 		SELECT peer_id
 		FROM manage_note n
 		left join chat c on n.peer_id = c.id
-		WHERE peer_type = ? AND label_id in (?) and c.type in (?)
+		WHERE peer_type = ? AND  n.is_delete = 0 and label_id in (?) and c.type in (?)
 		GROUP BY peer_id
 	) c;
 	`
@@ -222,7 +229,7 @@ func (dao *NoteDAO) GetLabelUserIds(peerType, limit, offset int32, ids []string)
 	qry := `
 	select peer_id
 	from manage_note
-	where peer_type = ? and label_id in (?)
+	where peer_type = ? and label_id in (?) and is_delete = 0
 	group by peer_id limit ? offset ?;
 	`
 	query, args, err := sqlx.In(qry, peerType, ids, limit, offset)
@@ -245,7 +252,7 @@ func (dao *NoteDAO) GetLabelUserIds(peerType, limit, offset int32, ids []string)
 	FROM (
 		SELECT peer_id
 		FROM manage_note 
-		WHERE peer_type = ? AND label_id in (?)
+		WHERE peer_type = ? AND label_id in (?) and is_delete = 0
 		GROUP BY peer_id
 	) c;
 	`

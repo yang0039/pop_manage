@@ -41,5 +41,7 @@ func SystemRegister(group *gin.RouterGroup) {
 	group.GET("/get_label", service.GetLabel)
 	group.GET("/get_label_note", service.GetLabbelNote)
 
+	// 操作记录
+	group.GET("/get_request_record", service.GetRequestRecord)
 }
 

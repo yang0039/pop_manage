@@ -12,11 +12,18 @@ import (
 )
 
 func (service *ChatController) AddChatStatus(c *gin.Context) {
-	params := &dto.ChatStatus{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.ChatStatus{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.ChatStatus)
 	if params.ChatId == 0 || params.Status > 4 || params.Status < 1 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -56,11 +63,18 @@ func (service *ChatController) AddChatStatus(c *gin.Context) {
 }
 
 func (service *ChatController) QryChatStatusRecord(c *gin.Context) {
-	params := &dto.ChatStatus{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.ChatStatus{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.ChatStatus)
 	if params.ChatId == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return

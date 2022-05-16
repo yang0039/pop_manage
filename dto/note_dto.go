@@ -42,8 +42,8 @@ type PhoneTransaction struct {
 }
 
 type SetUserOfficial struct {
-	UserId    int32  `json:"user_id"`
-	OperaType int32  `json:"opera_type"` // 1:设为客服， 2：解除客服
+	UserId    int32 `json:"user_id"`
+	OperaType int32 `json:"opera_type"` // 1:设为客服， 2：解除客服
 }
 
 type Banned struct {
@@ -132,4 +132,25 @@ type ChatStatus struct {
 	Note   string `json:"note" form:"note"`
 	Limit  int32  `json:"limit" form:"limit"`
 	Offset int32  `json:"offset" form:"offset"`
+}
+
+type StoreType struct {
+	UserId int32 `json:"user_id" form:"user_id"`
+	Type   int32 `json:"type" form:"type"` // 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
+	Limit  int32 `json:"limit" form:"limit"`
+	Offset int32 `json:"offset" form:"offset"`
+}
+
+type UpdateUserName struct {
+	UserId   int32  `json:"user_id" form:"user_id"`
+	UserName string `json:"username" form:"username"`
+}
+
+type UpdateUserPhone struct {
+	UserId int32  `json:"user_id" form:"user_id"`
+	Phone  string `json:"phone" form:"phone"`
+}
+
+type QryChat struct {
+	ChatId int32 `form:"chat_id"`
 }

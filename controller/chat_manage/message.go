@@ -54,11 +54,17 @@ type Document struct {
 }
 
 func (service *ChatController) GetChatMessage(c *gin.Context) {
-	params := &dto.ChatMsg{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.ChatMsg{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.ChatMsg)
 	if params.ChatId == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -165,6 +171,10 @@ func (service *ChatController) GetChatMessage(c *gin.Context) {
 
 func Channel_assemble(self_id int32, msg *dataobject.ChannelMsgRow, raw *dataobject.RawMessageRow) *mtproto.Message {
 	/* 由用户信箱和原始消息拼装成完整的message */
+	if raw == nil || raw.MessageBlob == nil {
+		return nil
+	}
+
 	dbuf := mtproto.NewDecodeBuf(raw.MessageBlob)
 	obj := dbuf.Object()
 	if obj == nil {
@@ -196,6 +206,7 @@ func Channel_assemble(self_id int32, msg *dataobject.ChannelMsgRow, raw *dataobj
 			break
 		}
 	}
+	message.Data2.FromId = msg.FromId
 	message.Data2.MediaUnread = msg.MediaUnread
 	message.Data2.ReplyToMsgId = msg.ReplyToMsgId
 	message.Data2.Views = raw.Views
@@ -205,6 +216,9 @@ func Channel_assemble(self_id int32, msg *dataobject.ChannelMsgRow, raw *dataobj
 
 func User_assemble(msg *dataobject.UserMsgRow, raw *dataobject.RawMessageRow) *mtproto.Message {
 	/* 由用户信箱和原始消息拼装成完整的message */
+	if raw == nil || raw.MessageBlob == nil {
+		return nil
+	}
 	dbuf := mtproto.NewDecodeBuf(raw.MessageBlob)
 	obj := dbuf.Object()
 	if obj == nil {

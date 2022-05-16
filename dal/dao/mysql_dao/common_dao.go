@@ -72,6 +72,15 @@ func (dao *CommonDAO) GetSendMsgCount() int32 {
 	return count
 }
 
+func (dao *CommonDAO) GetSendMsgCountWithTime(start, end int64) int32 {
+	qry := `select count(*) count from raw_message where add_time between ? and ?;`
+	row := dao.db.QueryRow(qry, start, end)
+	var count int32
+	err := row.Scan(&count)
+	raise(err)
+	return count
+}
+
 // 查找含特定数目以上人群数
 func (dao *CommonDAO) GetMemberChatNum(start, end int64, num int32) int32 {
 	sql := `
@@ -728,6 +737,12 @@ func (dao *CommonDAO) GetUserGender(ids []int32) map[int32]int32 {
 }
 
 func (dao *CommonDAO) GetDayActiveUser(start, end int64) int32 {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.LogSugar.Errorf("GetDayActiveUser err:%v", err)
+			return
+		}
+	}()
 	sqlStr :=`
 	select
 	  count(from_id) count
@@ -751,16 +766,22 @@ func (dao *CommonDAO) GetDayActiveUser(start, end int64) int32 {
 }
 
 func (dao *CommonDAO) GetDayActiveChat(start, end int64) int32 {
+	defer func() {
+		if err := recover(); err != nil {
+			logger.LogSugar.Errorf("GetDayActiveChat err:%v", err)
+			return
+		}
+	}()
 	sqlStr :=`
 	select
-	  count(from_id) count
+	  count(peer_id) count
 	from
 	(
 	  SELECT
-	  from_id
+	  peer_id
 	  FROM raw_message
 	  WHERE add_time between ? and ? and peer_type in (3, 4)
-	  group by from_id
+	  group by peer_id
 	) d;
 	`
 	row := dao.db.QueryRowx(sqlStr, start, end)
@@ -773,10 +794,43 @@ func (dao *CommonDAO) GetDayActiveChat(start, end int64) int32 {
 	return count
 }
 
-func (dao *CommonDAO) AddActieCache(uCount, cCount int32, date string) {
-	sqlStr := "insert into manage_active_data (date, user_count, chat_count, add_time) values (?, ?, ?, ?);"
-	_, err := dao.db.Exec(sqlStr, date, uCount, cCount, time.Now().Unix())
+func (dao *CommonDAO) AddActieCache(uCount, cCount, uCount5, cCount5, msgCount, phoneCount int32, date string) {
+	sqlStr := "insert into manage_active_data (date, user_count, chat_count, user_count5, chat_count5, msg_count, call_count, add_time) values (?, ?, ?, ?, ?, ?, ?, ?);"
+	_, err := dao.db.Exec(sqlStr, date, uCount, cCount, uCount5, cCount5, msgCount, phoneCount, time.Now().Unix())
 	raise(err)
+}
+
+func (dao *CommonDAO) ActieCacheExit(date string) bool {
+	sqlStr := "select date from manage_active_data where date = ? limit 1"
+	row := dao.db.QueryRowx(sqlStr, date)
+	var value string
+	err := row.Scan(&value)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	raise(err)
+	return value == date
+}
+
+func (dao *CommonDAO) GetActiveData5(date string) (int32, int32) {
+	qry := `select user_count5, chat_count5 count from manage_active_data where date <= ? order by date desc limit 1;`
+	row := dao.db.QueryRow(qry, date)
+	var uCount, cCount int32
+	err := row.Scan(&uCount, &cCount)
+	if err == sql.ErrNoRows {
+		return uCount, cCount
+	}
+	raise(err)
+	return uCount, cCount
+}
+
+func (dao *CommonDAO) GetMsgPhoneCount() (int32, int32) {
+	qry := `select sum(msg_count) mCount, sum(call_count) cCount from manage_active_data;`
+	row := dao.db.QueryRow(qry)
+	var mCount, cCount int32
+	err := row.Scan(&mCount, &cCount)
+	raise(err)
+	return mCount, cCount
 }
 
 func (dao *CommonDAO) Get30DaysActiveData(start, end string) ([]map[string]interface{}, []map[string]interface{}) {
@@ -862,3 +916,61 @@ func (dao *CommonDAO) Get30DaysActiveData(start, end string) ([]map[string]inter
 //	}
 //	return dataNums
 //}
+
+
+func (dao *CommonDAO) GetDeviceUsers(device, limit, offset int32) ([]int32, int32) {
+	// device 0:android 1:ios 2:mac 3:windows
+	/*
+	ios      iPhone 8 Plus  device_model like 'iPhone%'
+	android  other     system_version like 'SDK%'
+	windows  PC 64bit    device_model like 'PC%'
+	mac      MacBook Pro  system_version like 'macOS%'
+	*/
+	var uIds []int32
+	var whereSql string
+	if device == 0 {
+		whereSql = "where system_version like 'SDK%'"
+	} else if device == 1 {
+		whereSql = "where device_model like 'iPhone%'"
+	} else if device == 2 {
+		whereSql = "where system_version like 'macOS%'"
+	} else if device == 3 {
+		whereSql = "where device_model like 'PC%'"
+	}
+
+	sqlStr :=fmt.Sprintf(`
+	select user_id
+	from (
+		select user_id, device_model from user_logs1 %s
+		union all 
+		select user_id, device_model from user_logs2 %s
+	) d
+	group  by user_id order by user_id desc limit ? offset ?
+	`, whereSql, whereSql)
+	rows, err := dao.db.Queryx(sqlStr, limit, offset)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return uIds, 0
+	}
+	raise(err)
+	for rows.Next() {
+		var id int32
+		err = rows.Scan(&id)
+		raise(err)
+		uIds = append(uIds, id)
+	}
+
+	sqlConut :=fmt.Sprintf(`
+	select count(*) count
+	from (
+		select user_id from user_logs1 %s group by user_id
+		union all 
+		select user_id from user_logs2 %s group by user_id
+	) d
+	`, whereSql, whereSql)
+	row := dao.db.QueryRowx(sqlConut)
+	var count int32
+	err = row.Scan(&count)
+	raise(err)
+	return uIds, count
+}

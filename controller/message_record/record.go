@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"pop-api/baselib/logger"
 	"pop-api/baselib/minio_client"
 	"pop-api/baselib/redis_client"
 	"pop-api/baselib/util"
@@ -40,84 +41,6 @@ import (
 
 */
 
-const (
-	ALL         = 0
-	MESSAGE     = 1
-	DOCUMENT    = 2
-	PHOTO       = 3
-	VIDEO       = 4
-	URL         = 5
-	GIF         = 6
-	VOICE       = 7
-	MUSIC       = 8
-	ROUND_VIDEO = 9
-	GEO         = 10
-	CONTACT     = 11
-	OTHER       = 12
-)
-
-func ToOriginMsgType(msgType int32) int32 {
-	switch msgType {
-	case ALL:
-		return -1
-	case MESSAGE:
-		return 0
-	case DOCUMENT:
-		return 1
-	case PHOTO:
-		return 2
-	case VIDEO:
-		return 3
-	case URL:
-		return 4
-	case GIF:
-		return 5
-	case VOICE:
-		return 6
-	case MUSIC:
-		return 7
-	case ROUND_VIDEO:
-		return 11
-	case GEO:
-		return 12
-	case CONTACT:
-		return 13
-	case OTHER:
-		return -2
-	default:
-		return -1
-	}
-}
-
-func ToApiMsgType(msgType int32) int32 {
-	switch msgType {
-	case 0:
-		return MESSAGE
-	case 1:
-		return DOCUMENT
-	case 2:
-		return PHOTO
-	case 3:
-		return VIDEO
-	case 4:
-		return URL
-	case 5:
-		return GIF
-	case 6:
-		return VOICE
-	case 7:
-		return MUSIC
-	case 11:
-		return ROUND_VIDEO
-	case 12:
-		return GEO
-	case 13:
-		return CONTACT
-	default:
-		return OTHER
-	}
-}
-
 /*
 查询条件(组合形式)：
 1.发送方，2.接收方(群或人id)，3.关键字(暂无)，4.消息类型(全部，文本，文件，图片，视频，链接，gif，语音，音乐，圆形视频，位置，联系人)
@@ -125,11 +48,18 @@ func ToApiMsgType(msgType int32) int32 {
 */
 
 func (service *RecordController) GetMessageRecord(c *gin.Context) {
-	params := &dto.MessageRecord{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.MessageRecord{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.MessageRecord)
 	if params.Limit == 0 {
 		params.Limit = 20
 	}
@@ -148,14 +78,14 @@ func (service *RecordController) GetMessageRecord(c *gin.Context) {
 	var messages []*dto.Message
 	//var peer dto.Peer
 
-	msgType := ToOriginMsgType(params.MessageType)
+	msgType := util.ToOriginMsgType(params.MessageType)
 	if params.PeerId > 100000 { // 用户id
 		if params.FromId == 0 {
 			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 			return
 		}
 
-		msgs, msgCount := uMsgDao.GetUserMsgRows(params.FromId, params.PeerId,2, msgType, 0, params.End, params.Limit, params.Offset)
+		msgs, msgCount := uMsgDao.GetUserMsgRows(params.FromId, params.PeerId, 2, msgType, 0, params.End, params.Limit, params.Offset)
 		count = msgCount
 		messages = UserMsgToMessage(msgs)
 		//peer = GetPeer(2, params.PeerId)
@@ -176,35 +106,35 @@ func (service *RecordController) GetMessageRecord(c *gin.Context) {
 	}
 
 	/*
-	else {  // peerId为0
-		if params.FromId == 0 {
-			middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
-			return
-		}
-		dialogs,dCount := memberapi.GetUserDialog(params.FromId, params.Limit, params.Offset)
-		count = dCount
-		for _, dialog := range dialogs {
-			key := fmt.Sprintf("%d:%d:%d", params.FromId, dialog["peer_type"], dialog["peer_id"])
-			top,_ := redis_client.RedisCache.HGet(key, "top").Result()
-			topMsgId,_ := strconv.Atoi(top)
-			if topMsgId == 0 {
-				continue
+		else {  // peerId为0
+			if params.FromId == 0 {
+				middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
+				return
 			}
-			if dialog["peer_type"] == 2 || dialog["peer_type"] == 3 { // 用户或普通群
-				msgs := uMsgDao.GetUserMsgRowsById(params.FromId, []int32{int32(topMsgId)})
-				messages = append(messages, UserMsgToMessage(msgs)...)
-			} else {  // 超级群或频道
-				msgs := cMsgDao.GetChannelMsgRowsById(dialog["peer_id"], []int32{int32(topMsgId)})
-				messages = append(messages, ChannelMsgToMessage(msgs)...)
+			dialogs,dCount := memberapi.GetUserDialog(params.FromId, params.Limit, params.Offset)
+			count = dCount
+			for _, dialog := range dialogs {
+				key := fmt.Sprintf("%d:%d:%d", params.FromId, dialog["peer_type"], dialog["peer_id"])
+				top,_ := redis_client.RedisCache.HGet(key, "top").Result()
+				topMsgId,_ := strconv.Atoi(top)
+				if topMsgId == 0 {
+					continue
+				}
+				if dialog["peer_type"] == 2 || dialog["peer_type"] == 3 { // 用户或普通群
+					msgs := uMsgDao.GetUserMsgRowsById(params.FromId, []int32{int32(topMsgId)})
+					messages = append(messages, UserMsgToMessage(msgs)...)
+				} else {  // 超级群或频道
+					msgs := cMsgDao.GetChannelMsgRowsById(dialog["peer_id"], []int32{int32(topMsgId)})
+					messages = append(messages, ChannelMsgToMessage(msgs)...)
+				}
 			}
 		}
-	}
 	*/
 
-	data := map[string]interface{} {
+	data := map[string]interface{}{
 		"message": messages,
 		//"peer": peer,
-		"count":  count,
+		"count": count,
 	}
 	middleware.ResponseSuccess(c, data)
 }
@@ -220,13 +150,17 @@ func UserMsgToMessage(msgs []*dataobject.UserMsgRow) []*dto.Message {
 	messages := make([]*dto.Message, 0, len(msgs))
 	for _, m := range msgs {
 		msg := chatapi.User_assemble(m, rawMap[m.RawId])
-		msgType := ToApiMsgType(int32(m.Type))
-		mess := msg.Data2.Message
-		if mess == "" {
-			if msg.Data2.Action != nil {
-				mess = msg.Data2.Action.Data2.Message
-			}
+		if msg == nil {
+			continue
 		}
+		//msgType := ToApiMsgType(int32(m.Type))
+		//mess := msg.Data2.Message
+		//if mess == "" {
+		//	if msg.Data2.Action != nil {
+		//		mess = msg.Data2.Action.Data2.Message
+		//	}
+		//}
+		mess, msgType := ToMessageAndType(msg, int32(m.Type))
 		message := &dto.Message{
 			MsgId:   msg.Data2.Id,
 			From:    GetUser(msg.Data2.FromId),
@@ -253,13 +187,17 @@ func ChannelMsgToMessage(msgs []*dataobject.ChannelMsgRow) []*dto.Message {
 	messages := make([]*dto.Message, 0, len(msgs))
 	for _, m := range msgs {
 		msg := chatapi.Channel_assemble(0, m, rawMap[m.RawId])
-		msgType := ToApiMsgType(int32(m.Type))
+		if msg == nil {
+			continue
+		}
+		//msgType := ToApiMsgType(int32(m.Type))
+		msgStr, msgType := ToMessageAndType(msg, int32(m.Type))
 		message := &dto.Message{
 			MsgId:   msg.Data2.Id,
 			From:    GetUser(msg.Data2.FromId),
 			Peer:    GetPeer(rawMap[m.RawId].PeerType, rawMap[m.RawId].PeerId),
 			Date:    msg.Data2.Date,
-			Message: msg.Data2.Message,
+			Message: msgStr,
 			MsgType: msgType,
 			Url:     getFileUrl(msgType, msg),
 		}
@@ -271,11 +209,19 @@ func ChannelMsgToMessage(msgs []*dataobject.ChannelMsgRow) []*dto.Message {
 func GetUser(userId int32) dto.User {
 	fName, _ := redis_client.RedisCache.HGet(fmt.Sprintf("auth:%d:first_name", userId), "0").Result()
 	lName, _ := redis_client.RedisCache.HGet(fmt.Sprintf("auth:%d:last_name", userId), "0").Result()
+	if fName == "" && lName == "" {
+		// todo判断用户是否被删除
+		if !dao.GetUserDAO().CheckUser(userId) {
+			fName = "已删除用户"
+		}
+	}
+
 	return dto.User{
 		UserId:    userId,
 		FirstName: fName,
 		LastName:  lName,
 	}
+
 }
 
 func GetPeer(peerType, peerId int32) dto.Peer {
@@ -289,6 +235,12 @@ func GetPeer(peerType, peerId int32) dto.Peer {
 		p.FirstName = fName
 		p.LastName = lName
 		p.PeerType = util.PeerUser
+		if fName == "" && lName == "" {
+			// todo判断用户是否被删除
+			if !dao.GetUserDAO().CheckUser(peerId) {
+				fName = "已删除用户"
+			}
+		}
 	} else {
 		chatDao := dao.GetChatDAO()
 		c := chatDao.GetChat(peerId)
@@ -313,9 +265,9 @@ func getFileUrl(msgType int32, message *mtproto.Message) string {
 	photoDao := dao.GetPhotoDAO()
 	documentDao := dao.GetDocumentDAO()
 	switch msgType {
-	case MESSAGE: // 普通消息
+	case util.MESSAGE: // 普通消息
 		return ""
-	case DOCUMENT,VIDEO,VOICE,GIF,MUSIC,ROUND_VIDEO: // 文件
+	case util.DOCUMENT, util.VIDEO, util.VOICE, util.GIF, util.MUSIC, util.ROUND_VIDEO: // 文件
 		document := media.Data2.Document
 		if document == nil {
 			return ""
@@ -324,7 +276,7 @@ func getFileUrl(msgType int32, message *mtproto.Message) string {
 		d := documentDao.SelectById(documentId)
 		return fmt.Sprintf("http://%s%s", minio_client.MinioIp, d.FilePath)
 
-	case PHOTO: // 图片
+	case util.PHOTO: // 图片
 		photo := media.Data2.Photo_1
 		if photo == nil {
 			return ""
@@ -335,4 +287,48 @@ func getFileUrl(msgType int32, message *mtproto.Message) string {
 	default:
 		return ""
 	}
+}
+
+func ToMessageAndType(message *mtproto.Message, mType int32) (msg string, msgType int32) {
+	msgType, msg = util.ToApiMsgType(mType, message)
+	//msg = message.Data2.Message
+	if msgType == util.MESSAGE && msg == "" {
+		if message.Data2.Action == nil {
+			return
+		}
+		if message.Data2.Action.Data2.Message != "" {
+			msg = message.Data2.Action.Data2.Message
+			return
+		}
+		// 一些提示消息的处理
+		msgType = util.OTHER
+		switch message.Data2.Action.Constructor {
+		case mtproto.TLConstructor_CRC32_messageActionChatAddUser:
+			msg = "添加成员"
+		case mtproto.TLConstructor_CRC32_messageActionChatDeleteUser:
+			msg = "删除成员"
+		case mtproto.TLConstructor_CRC32_messageActionChatEditTitle:
+			msg = "修改群名称"
+		case mtproto.TLConstructor_CRC32_messageActionChatEditPhoto:
+			msg = "修改群头像"
+		case mtproto.TLConstructor_CRC32_messageActionChatDeletePhoto:
+			msg = "删除群头像"
+		case mtproto.TLConstructor_CRC32_messageActionChatCreate:
+			msg = "创建群组"
+		case mtproto.TLConstructor_CRC32_messageActionChatJoinedByLink:
+			msg = "通过链接加入群"
+		case mtproto.TLConstructor_CRC32_messageActionPhoneCall:
+			msg = "电话消息"
+		case mtproto.TLConstructor_CRC32_messageActionChannelMigrateFrom:
+			msg = "升级超级群"
+		case mtproto.TLConstructor_CRC32_messageActionChatMigrateTo:
+			msg = "升级超级群"
+		case mtproto.TLConstructor_CRC32_messageActionChannelCreate:
+			msg = "创建频道"
+		default:
+			logger.LogSugar.Infof("action:%v", message.Data2.Action)
+		}
+
+	}
+	return
 }

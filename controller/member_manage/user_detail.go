@@ -16,11 +16,18 @@ import (
 
 // 用户关系
 func (service *UserController) UserRelation(c *gin.Context) {
-	params := &dto.QryUser{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.QryUser{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.QryUser)
 	if params.UserId == 0 || params.PeerId == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -75,11 +82,18 @@ func isFriend(aId, bId int32) bool {
 
 // 好友列表
 func (service *UserController) UserContact(c *gin.Context) {
-	params := &dto.QryUser{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.QryUser{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.QryUser)
 	if params.UserId == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -120,11 +134,18 @@ func (service *UserController) UserContact(c *gin.Context) {
 
 // 对话列表
 func (service *UserController) UserDialogs(c *gin.Context) {
-	params := &dto.QryUser{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.QryUser{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.QryUser)
 	if params.UserId == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return

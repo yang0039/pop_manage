@@ -1,7 +1,9 @@
 package util
 
 import (
+	"fmt"
 	"pop-api/baselib/logger"
+	"strconv"
 	"time"
 )
 
@@ -36,3 +38,48 @@ func RaiseDBERR(err error) {
 	logger.Logger.Error(err.Error())
 	panic(err.Error())
 }
+
+func FileType(ext string) string {
+	/*
+		file      文件
+		photo     图片
+		audio     音频
+		video     视频
+		other     其他
+	*/
+	//-- 文件
+	//-- 图片  .jpg  .png .jepg
+	//-- 音频  .ogg
+	//-- 视频  .mp4  avi
+	//-- 其他  ''
+
+	switch ext {
+	case ".jpg",".png",".jepg":
+		return "photo"
+	case ".ogg":
+		return "audio"
+	case ".mp4", ".avi":
+		return "video"
+	case "","other":
+		return "other"
+	default:
+		return "file"
+	}
+}
+
+func Folat4(d float64) float64 {
+	f,_ := strconv.ParseFloat(fmt.Sprintf("%.4f", d), 64)
+	return f
+}
+
+func Folat2(d float64) float64 {
+	f,_ := strconv.ParseFloat(fmt.Sprintf("%.2f", d), 64)
+	return f
+}
+
+
+
+
+
+
+

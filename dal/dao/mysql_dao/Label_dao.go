@@ -54,3 +54,23 @@ func (dao *LabelDAO) UpdateLabel(id int32, name string) {
 	_, err := dao.db.Exec(sqlStr, name, id)
 	raise(err)
 }
+
+func (dao *LabelDAO) GetNames(ids []string) []string {
+	res := make([]string, 0)
+	sqlStr := "select label_name from manage_label where is_delete = 0 and id in (?);"
+	query, args, err := sqlx.In(sqlStr, ids)
+	raise(err)
+	rows, err := dao.db.Queryx(query, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return res
+	}
+	raise(err)
+	for rows.Next() {
+		var name string
+		err = rows.Scan(&name)
+		raise(err)
+		res = append(res, name)
+	}
+	return res
+}

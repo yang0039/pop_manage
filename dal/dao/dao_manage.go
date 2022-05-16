@@ -31,10 +31,15 @@ type MysqlDAOList struct {
 	UserMsgRowDAO        *mysql_dao.UserMsgRowDAO
 	AllowIpDAO           *mysql_dao.AllowIpDAO
 	ReportDAO            *mysql_dao.ReportDAO
-	PhotoDAO			 *mysql_dao.PhotoDAO
-	DocumentDAO			 *mysql_dao.DocumentDAO
+	PhotoDAO             *mysql_dao.PhotoDAO
+	DocumentDAO          *mysql_dao.DocumentDAO
 	LabelDAO             *mysql_dao.LabelDAO
 	PeerStatusDAO        *mysql_dao.PeerStatusDAO
+	FilesDAO             *mysql_dao.FilesDAO
+	BannedInfoDAO        *mysql_dao.BannedInfoDAO
+	UserLogsDAO          *mysql_dao.UserLogsDAO
+	RequestRecoreDAO     *mysql_dao.RequestRecoreDAO
+	UserOperaDAO         *mysql_dao.UserOperaDAO
 }
 
 func InstallMysqlDAOManager(db *sqlx.DB, dbindex int) {
@@ -66,6 +71,11 @@ func InstallMysqlDAOManager(db *sqlx.DB, dbindex int) {
 	daoList.DocumentDAO = mysql_dao.NewDocumentDAO(db)
 	daoList.LabelDAO = mysql_dao.NewLabelDAO(db)
 	daoList.PeerStatusDAO = mysql_dao.NewPeerStatusDAO(db)
+	daoList.FilesDAO = mysql_dao.NewFilesDAO(db)
+	daoList.BannedInfoDAO = mysql_dao.NewBannedInfoDAO(db)
+	daoList.UserLogsDAO = mysql_dao.NewUserLogsDAO(db)
+	daoList.RequestRecoreDAO = mysql_dao.NewRequestRecoreDAO(db)
+	daoList.UserOperaDAO = mysql_dao.NewUserOperaDAO(db)
 }
 
 func GetCommonDAO() (dao *mysql_dao.CommonDAO) {
@@ -164,3 +174,22 @@ func GetPeerStatusDAO() (dao *mysql_dao.PeerStatusDAO) {
 	return daoList.PeerStatusDAO
 }
 
+func GetFilesDAO() (dao *mysql_dao.FilesDAO) {
+	return daoList.FilesDAO
+}
+
+func GetBannedInfoDAO() (dao *mysql_dao.BannedInfoDAO) {
+	return daoList.BannedInfoDAO
+}
+
+func GetUserLogsDAO() (dao *mysql_dao.UserLogsDAO) {
+	return daoList.UserLogsDAO
+}
+
+func GetRequestRecoreDAO() (dao *mysql_dao.RequestRecoreDAO) {
+	return daoList.RequestRecoreDAO
+}
+
+func GetUserOperaDAO() (dao *mysql_dao.UserOperaDAO) {
+	return daoList.UserOperaDAO
+}

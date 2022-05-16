@@ -98,7 +98,8 @@ func (dao *UserDAO) GetUserIdsByUserName(uname string, limit, offset int32) ([]i
 	if uname == "" {
 		return res, 0
 	}
-	qry := "select id from user where username = ? limit ? offset ?;"
+	uname = "%" + uname + "%"
+	qry := "select id from user where username like ? limit ? offset ?;"
 	rows, err := dao.db.Queryx(qry, uname, limit, offset)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
@@ -254,13 +255,46 @@ func (dao *UserDAO) CheckUser(userId int32) bool {
 	return true
 }
 
+// 检查用户是否存在
+func (dao *UserDAO) CheckUserByPhone(phone string) bool {
+	var query = "select id from user where phone = ?;"
+	row := dao.db.QueryRowx(query, phone)
+	var uId int32
+	err := row.Scan(&uId)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	raise(err)
+	if uId == 0 {
+		return false
+	}
+	return true
+}
+// 检查用户是否存在
+func (dao *UserDAO) CheckUserByUsername(username string) bool {
+	var query = "select id from user where username = ?;"
+	row := dao.db.QueryRowx(query, username)
+	var uId int32
+	err := row.Scan(&uId)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	raise(err)
+	if uId == 0 {
+		return false
+	}
+	return true
+}
+
+
 
 func (dao *UserDAO) GetUserIdsByName(name string, limit, offset int32) ([]int32, int32) {
 	res := make([]int32, 0)
 	if name == "" {
 		return res, 0
 	}
-	qry := "select id from user where concat(first_name, ' ', last_name) = ? || concat(first_name, last_name) = ? limit ? offset ?;"
+	name += "%"
+	qry := "select id from user where concat(first_name, ' ', last_name) like ? || concat(first_name, last_name) like ? limit ? offset ?;"
 	rows, err := dao.db.Queryx(qry, name, name, limit, offset)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
@@ -370,4 +404,55 @@ func (dao *UserDAO) GetUserIdsOfficial(limit, offset int32) ([]int32, int32) {
 	err = row.Scan(&count)
 	raise(err)
 	return res, count
+}
+
+func (dao *UserDAO) GetUser(userId int32) *dataobject.UserDO {
+	var res dataobject.UserDO
+	qry := `
+	select
+	  id, access_hash, first_name, last_name, username, phone,
+	  country_code, about, bot, photo_id, support, add_time
+	from user
+	where id = ?;
+	`
+	err := dao.db.Get(&res, qry, userId)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	raise(err)
+	return &res
+}
+
+func (dao *UserDAO) GetUserbyUserName(nm string) dataobject.UserDO {
+	var res dataobject.UserDO
+	qry := `
+	select
+	  id, access_hash, first_name, last_name, username, phone,
+	  country_code, about, bot, photo_id, support, add_time
+	from user
+	where username = ?;
+	`
+	err := dao.db.Get(&res, qry, nm)
+	if err == sql.ErrNoRows {
+		return res
+	}
+	raise(err)
+	return res
+}
+
+func (dao *UserDAO) GetUserbyPhone(phone string) dataobject.UserDO {
+	var res dataobject.UserDO
+	qry := `
+	select
+	  id, access_hash, first_name, last_name, username, phone,
+	  country_code, about, bot, photo_id, support, add_time
+	from user
+	where phone = ?;
+	`
+	err := dao.db.Get(&res, qry, phone)
+	if err == sql.ErrNoRows {
+		return res
+	}
+	raise(err)
+	return res
 }

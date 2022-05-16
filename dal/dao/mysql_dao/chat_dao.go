@@ -146,7 +146,7 @@ func (dao *ChatDAO) GetChatIdsByTitle(title string, chatType []int32, limit, off
 // 通过拥有者id获取群id
 func (dao *ChatDAO) GetChatIdsDefault(chatType []int32, limit, offset int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
-	qry :="select id from chat where deactivated = 0 and type in (?) order by add_time desc limit ? offset ?;"
+	qry :="select c.id from chat c left join chat_participant p on c.id = p.chat_id and c.creator_id = p.user_id where deactivated = 0 and c.type in (?) and p.user_id is not null order by c.add_time desc limit ? offset ?;"
 	q, args, err := sqlx.In(qry, chatType, limit, offset)
 	raise(err)
 	rows, err := dao.db.Queryx(q, args...)
@@ -163,7 +163,7 @@ func (dao *ChatDAO) GetChatIdsDefault(chatType []int32, limit, offset int32) ([]
 		chatIds = append(chatIds, chatId)
 	}
 
-	qryCount := "select count(*) from chat where deactivated = 0 and type in (?);"
+	qryCount := "select count(*) from chat c left join chat_participant p on c.id = p.chat_id and c.creator_id = p.user_id where deactivated = 0 and c.type in (?) and p.user_id is not null;"
 	q2, args, err := sqlx.In(qryCount, chatType)
 	raise(err)
 	row := dao.db.QueryRow(q2, args...)
@@ -176,7 +176,7 @@ func (dao *ChatDAO) GetChatIdsDefault(chatType []int32, limit, offset int32) ([]
 // 通过创建时间获取群id
 func (dao *ChatDAO) GetChatIdsByCreate(start, end int64, limit, offset int32, chatType []int32) ([]int32, int32) {
 	chatIds := make([]int32, 0)
-	qry :="select id from chat where deactivated = 0 and type in (?) and add_time between ? and ? limit ? offset ?;"
+	qry :="select c.id from chat c left join chat_participant p on c.id = p.chat_id and c.creator_id = p.user_id where deactivated = 0 and c.type in (?) and p.user_id is not null and c.add_time between ? and ? limit ? offset ?;"
 	q, args, err := sqlx.In(qry, chatType, start, end, limit, offset)
 	raise(err)
 	rows, err := dao.db.Queryx(q, args...)
@@ -192,7 +192,7 @@ func (dao *ChatDAO) GetChatIdsByCreate(start, end int64, limit, offset int32, ch
 		chatIds = append(chatIds, chatId)
 	}
 
-	qryCount := "select count(*) from chat where deactivated = 0  and type in (?) and add_time between ? and ?;"
+	qryCount := "select count(*) from chat c left join chat_participant p on c.id = p.chat_id and c.creator_id = p.user_id where deactivated = 0  and c.type in (?) and p.user_id is not null and c.add_time between ? and ?;"
 	q2, args, err := sqlx.In(qryCount, chatType, start, end)
 	raise(err)
 	row := dao.db.QueryRow(q2, args...)

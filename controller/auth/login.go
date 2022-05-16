@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
+	"pop-api/baselib/redis_client"
+	"pop-api/baselib/util"
 	"pop-api/dal/dao"
 	"pop-api/dto"
 	"pop-api/middleware"
@@ -15,11 +17,18 @@ import (
 )
 
 func (service *AccountController) Login(c *gin.Context) {
-	account := &dto.Account{}
-	if err := c.ShouldBind(account); err != nil {
+	//account := &dto.Account{}
+	//if err := c.ShouldBind(account); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	account, _ := bindData.(*dto.Account)
 	if account.Name == "" || account.Pwd == "" {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", account)))
 		return
@@ -36,7 +45,7 @@ func (service *AccountController) Login(c *gin.Context) {
 		ip = ips[0]
 	}
 	value := commomDao.GetConfig("white")
-	allowIps,_ := allowIpDao.GetAllowIp()
+	allowIps, _ := allowIpDao.GetAllowIp()
 	if value == "1" {
 		var allowLogin bool
 		for _, alIp := range allowIps {
@@ -68,20 +77,28 @@ func (service *AccountController) Login(c *gin.Context) {
 	}
 
 	t := int32(7 * 24 * 3600)
-	if int64(acc.PwdUtil) - now < int64(7 * 24 * 3600) {
+	if int64(acc.PwdUtil)-now < int64(7*24*3600) {
 		t = acc.PwdUtil - int32(now)
 	}
-	token,err := SignToken(acc.Id, acc.UserName, account.Pwd, t)
+	token, err := SignToken(acc.Id, acc.UserName, account.Pwd, t, now)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+
+	reId, _ := c.Get("record_id")
+	recordId, _ := reId.(int32)
+	dao.GetRequestRecoreDAO().AddRequestAccountId(recordId, acc.Id)
 
 	// 记录登录
 	loginDao.RecordLogin(acc.Id, ip)
 	data := map[string]string{
 		"token": token,
 	}
+
+	// ManageToken
+	redis_client.RedisCache.HSet(util.ManageToken, acc.Id, token)
+
 	middleware.ResponseSuccess(c, data)
 
 }
@@ -92,12 +109,13 @@ func md5V(str string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-func SignToken(id int32, name, pwd string, remainTime int32) (tokenStr string, err error) {
+func SignToken(id int32, name, pwd string, remainTime int32, tt int64) (tokenStr string, err error) {
 	// 带权限创建令牌
 	claims := make(jwt.MapClaims)
 	claims["id"] = id
 	claims["name"] = name
 	claims["pwd"] = pwd
+	claims["time"] = tt
 
 	sec := time.Duration(remainTime)
 	//sec := time.Duration(20)

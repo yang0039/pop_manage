@@ -16,7 +16,7 @@ func NewPermissionsUrlDAO(db *sqlx.DB) *PermissionsUrlDAO {
 
 func (dao *PermissionsUrlDAO) GetAllPermissionsUrl() []dataobject.PermissionsUrl {
 	res := make([]dataobject.PermissionsUrl, 0)
-	qry := `select id, permissions_id, url, method, is_effect, add_time from manage_permissions_url;`
+	qry := `select id, permissions_id, url, method, method_name, is_effect, add_time from manage_permissions_url;`
 	rows, err := dao.db.Queryx(qry)
 	defer rows.Close()
 	if err == sql.ErrNoRows {

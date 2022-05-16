@@ -11,11 +11,18 @@ import (
 )
 
 func (service *UserController) GetReport(c *gin.Context) {
-	params := &dto.QryType{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.QryType{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.QryType)
 	if params.Limit == 0 {
 		params.Limit = 20
 	}
@@ -23,8 +30,8 @@ func (service *UserController) GetReport(c *gin.Context) {
 	reportDao := dao.GetReportDAO()
 	msgDao := dao.GetChannelMsgRowDAO()
 	userMsgDao := dao.GetUserMsgRowDAO()
-	reports := reportDao.GetReports(params.Limit, params.Offset)
-	total := reportDao.GetReportCount()
+	reports, total := reportDao.GetReports(params.Type, params.Limit, params.Offset)
+	//total := reportDao.GetReportCount()
 	reportRes := make([]*dto.ReportRes, 0, len(reports))
 
 	for _, report := range reports {

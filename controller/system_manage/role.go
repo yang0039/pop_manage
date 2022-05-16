@@ -12,11 +12,18 @@ import (
 
 // 增加角色
 func (service *SystemController) AddRole(c *gin.Context) {
-	params := &dto.Role{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Role{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Role)
 	if params.Name == "" {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -45,11 +52,17 @@ func (service *SystemController) AddRole(c *gin.Context) {
 
 // 编辑角色权限
 func (service *SystemController) EditRolePermission(c *gin.Context) {
-	params := &dto.Role{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Role{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Role)
 	if params.Id == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -83,11 +96,18 @@ func (service *SystemController) EditRolePermission(c *gin.Context) {
 
 // 删除角色
 func (service *SystemController) DelRole(c *gin.Context) {
-	params := &dto.Role{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Role{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Role)
 	if params.Id == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return

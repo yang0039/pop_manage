@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"github.com/gin-gonic/gin"
 	"pop-api/baselib/logger"
+	"pop-api/dal/dao"
 )
 
 type ResponseCode int
@@ -43,6 +44,11 @@ func ResponseError(c *gin.Context, code ResponseCode, disMsg string, err error) 
 	//}
 	//resp := &Response{ErrorCode: code, ErrorMsg: err.Error(), Data: "", TraceId: traceId, Stack: stack}
 
+	reId, _ := c.Get("record_id")
+	id, _ := reId.(int32)
+	if id != 0 {
+		dao.GetRequestRecoreDAO().AddRequestResult(id, 0, disMsg)
+	}
 	logger.LogSugar.Errorf("uri:%s, err:%s", c.Request.RequestURI, err.Error())
 	resp := &Response{ErrorCode: code, DisMsg: disMsg, ErrorMsg: err.Error(), Data: ""}
 	c.JSON(200, resp)
@@ -60,6 +66,11 @@ func ResponseSuccess(c *gin.Context, data interface{}) {
 	//}
 	//resp := &Response{ErrorCode: SuccessCode, ErrorMsg: "", Data: data, TraceId: traceId}
 
+	reId, _ := c.Get("record_id")
+	id, _ := reId.(int32)
+	if id != 0 {
+		dao.GetRequestRecoreDAO().AddRequestResult(id, 1, "")
+	}
 	resp := &Response{ErrorCode: SuccessCode, DisMsg: "成功", ErrorMsg: "", Data: data}
 	c.JSON(200, resp)
 	response, _ := json.Marshal(resp)

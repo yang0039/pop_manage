@@ -6,7 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"pop-api/baselib/logger"
 	"pop-api/baselib/redis_client"
+	"pop-api/baselib/util"
 	"pop-api/dal/dao"
 	"pop-api/dto"
 	"pop-api/middleware"
@@ -16,11 +18,18 @@ import (
 )
 
 func (service *SystemController) AddAcount(c *gin.Context) {
-	params := &dto.Acount{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Acount{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Acount)
 	if params.AccountName == "" || params.UserName == "" || params.Pwd == "" {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -55,11 +64,18 @@ func (service *SystemController) AddAcount(c *gin.Context) {
 }
 
 func (service *SystemController) EditAcount(c *gin.Context) {
-	params := &dto.Acount{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Acount{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Acount)
 	if params.Pwd == "" || params.Id == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -86,6 +102,7 @@ func (service *SystemController) EditAcount(c *gin.Context) {
 	if len(params.NewPwd) > 0 {
 		newPwd := md5V(params.NewPwd)
 		accountDao.EditAccountPwd(params.Id, newPwd)
+		redis_client.RedisCache.HDel(util.ManageToken, fmt.Sprintf("%d", params.Id))
 	}
 	var util int32
 	if params.PwdUtil > 0 {
@@ -105,11 +122,18 @@ func (service *SystemController) EditAcount(c *gin.Context) {
 
 // 更新账户状态
 func (service *SystemController) EditAcountState(c *gin.Context) {
-	params := &dto.Acount{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Acount{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Acount)
 	if params.Id == 0 || (params.ForbiddenType != 0 && params.ForbiddenType != 1) {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -122,13 +146,13 @@ func (service *SystemController) EditAcountState(c *gin.Context) {
 
 	accountDao.EditAccountState(params.Id, params.ForbiddenType)
 
-	if params.ForbiddenType == 0 {    // 禁用
+	if params.ForbiddenType == 0 { // 禁用
 		delete(public.AcountRole, params.Id)
-	} else {      // 解除禁用
+	} else { // 解除禁用
 		roles := accountDao.GetAccountRole(params.Id)
 		roleIds := make([]int32, 0, len(roles))
 		for _, r := range roles {
-			rId,_ := r["id"].(int32)
+			rId, _ := r["id"].(int32)
 			if rId != 0 {
 				roleIds = append(roleIds, rId)
 			}
@@ -168,7 +192,6 @@ func (service *SystemController) DelAcount(c *gin.Context) {
 		return
 	}
 
-
 	if !accountDao.AccountIsExitById(params.Id) {
 		middleware.ResponseError(c, 400, "账户不存在", errors.New("账户不存在"))
 		return
@@ -183,7 +206,6 @@ func (service *SystemController) DelAcount(c *gin.Context) {
 	}
 	middleware.ResponseSuccess(c, res)
 }
-
 
 // 更新密码(用户自己修改)
 func (service *SystemController) EditAcountPwd(c *gin.Context) {
@@ -216,6 +238,7 @@ func (service *SystemController) EditAcountPwd(c *gin.Context) {
 	res := map[string]int32{
 		"account_id": params.Id,
 	}
+	redis_client.RedisCache.HDel(util.ManageToken, fmt.Sprintf("%d", accId))
 	middleware.ResponseSuccess(c, res)
 
 }
@@ -223,6 +246,7 @@ func (service *SystemController) EditAcountPwd(c *gin.Context) {
 func (service *SystemController) GetAccount(c *gin.Context) {
 	accId, _ := c.Get("account_id")
 	id, _ := accId.(int32)
+	logger.LogSugar.Infof("GetAccount id:%d", id)
 
 	accountDao := dao.GetAccountDAO()
 	roleDAO := dao.GetRoleDAO()
@@ -256,8 +280,8 @@ func (service *SystemController) GetAccount(c *gin.Context) {
 			funcPermis[p.FuncName] = make([]map[string]interface{}, 0)
 		}
 		m := map[string]interface{}{
-			"id": p.Id,
-			"name": p.Name,
+			"id":    p.Id,
+			"name":  p.Name,
 			"title": p.Title,
 		}
 		funcPermis[p.FuncName] = append(funcPermis[p.FuncName], m)
@@ -265,8 +289,8 @@ func (service *SystemController) GetAccount(c *gin.Context) {
 		_, ok2 := funcMap[p.FuncName]
 		if !ok2 {
 			m2 := map[string]interface{}{
-				"menu_id": p.MenuId,
-				"func_name": p.FuncName,
+				"menu_id":    p.MenuId,
+				"func_name":  p.FuncName,
 				"func_title": p.FuncTitle,
 			}
 			funcMap[p.FuncName] = m2
@@ -290,7 +314,7 @@ func (service *SystemController) GetAccount(c *gin.Context) {
 		//menuFunc[p.MenuId]
 	}
 
-	for funcName,_ :=  range funcMap {
+	for funcName, _ := range funcMap {
 		funcMap[funcName]["permissions"] = funcPermis[funcName]
 	}
 
@@ -310,7 +334,6 @@ func (service *SystemController) GetAccount(c *gin.Context) {
 
 		menuRes = append(menuRes, m)
 	}
-
 
 	//pageName := commonDao.GetPageName(permisIds)
 	res := map[string]interface{}{

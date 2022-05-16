@@ -10,11 +10,18 @@ import (
 )
 
 func (service *SystemController) AddLabel(c *gin.Context) {
-	params := &dto.Lable{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Lable{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Lable)
 	if params.Name == "" {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -47,11 +54,18 @@ func (service *SystemController) GetLabel(c *gin.Context) {
 }
 
 func (service *SystemController) DelLabel(c *gin.Context) {
-	params := &dto.Lable{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Lable{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Lable)
 	if params.Id == 0 {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return
@@ -81,11 +95,18 @@ func (service *SystemController) DelLabel(c *gin.Context) {
 }
 
 func (service *SystemController) UpdateLabel(c *gin.Context) {
-	params := &dto.Lable{}
-	if err := c.ShouldBind(params); err != nil {
+	//params := &dto.Lable{}
+	//if err := c.ShouldBind(params); err != nil {
+	//	middleware.ResponseError(c, 500, "系统错误", err)
+	//	return
+	//}
+
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
 	}
+	params, _ := bindData.(*dto.Lable)
 	if params.Id == 0 || params.Name == "" {
 		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
 		return

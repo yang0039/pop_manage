@@ -20,6 +20,8 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible
 	github.com/pkg/errors v0.8.1
+	github.com/ttacon/builder v0.0.0-20170518171403-c099f663e1c2 // indirect
+	github.com/ttacon/libphonenumber v1.2.1
 	github.com/vmihailenco/msgpack v4.0.4+incompatible
 	go.uber.org/zap v1.19.0
 	google.golang.org/grpc v1.21.0

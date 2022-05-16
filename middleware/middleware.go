@@ -2,11 +2,14 @@ package middleware
 
 import (
 	"errors"
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"pop-api/baselib/logger"
 	"pop-api/baselib/redis_client"
+	"pop-api/baselib/util"
+	"pop-api/dal/dao"
 	"pop-api/public"
 	"strings"
 	"time"
@@ -81,6 +84,13 @@ func JwtVerify() gin.HandlerFunc {
 		//将uid写入请求参数
 		id := claims.Id
 		name := claims.Name
+		logger.LogSugar.Infof("account_id:%d, user_name:%s", id, name)
+		cacheToken,_ := redis_client.RedisCache.HGet(util.ManageToken, fmt.Sprintf("%d", id)).Result()
+		if cacheToken != tokenStr {
+			logger.LogSugar.Infof("token not exit, account_id:%d, user_name:%s", id, name)
+			ResponseError(c, 403, "认证失效", errors.New("token认证失效"))
+			return
+		}
 		c.Set("account_id", id)
 		c.Set("user_name", name)
 		// 权限验证
@@ -132,3 +142,36 @@ func verifyPermission(id int32, url, method string) bool {
 	return false
 }
 
+func OperaRecord() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		accId, _ := c.Get("account_id")
+		id, _ := accId.(int32)
+		//if id == 0 {
+		//	// todo
+		//}
+		method := strings.ToLower(c.Request.Method)
+		url := c.FullPath()
+		cIp := c.ClientIP()
+		//logger.LogSugar.Infof("id:%d", id)
+		//logger.LogSugar.Infof("method:%s", method)
+		//logger.LogSugar.Infof("url:%s", url)
+		//logger.LogSugar.Infof("ip:%s", cIp)
+		if url != "/system/get_request_record" {   // 查询请求记录先不记录
+			recordId := dao.GetRequestRecoreDAO().AddRequestRecords(id, url, method, cIp)
+			c.Set("record_id", recordId)
+		}
+		c.Next()
+	}
+}
+
+func ShouldBind(c *gin.Context) (interface{}, error) {
+	mData, reqData, err := getUrlData(c)
+	if err != nil {
+		return mData, err
+	}
+	reId, _ := c.Get("record_id")
+	id, _ := reId.(int32)
+	logger.LogSugar.Infof("reqData:%s", reqData)
+	dao.GetRequestRecoreDAO().AddRequestData(id, reqData)
+	return mData, nil
+}

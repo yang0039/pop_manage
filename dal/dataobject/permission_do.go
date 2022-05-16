@@ -28,6 +28,7 @@ type PermissionsUrl struct {
 	PermissionsId int32  `db:"permissions_id" json:"permissions_id"`
 	Url           string `db:"url" json:"url"`
 	Method        string `db:"method" json:"method"`
+	MethodName    string `db:"method_name" json:"method_name"`
 	IsEffect      bool   `db:"is_effect" json:"is_effect"`
 	AddTime       int64  `db:"add_time" json:"add_time"`
 }
