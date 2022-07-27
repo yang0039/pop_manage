@@ -60,8 +60,11 @@ type Config struct {
 	ServerId int
 	MaxProc  int
 
+	FuncType int  // 作为功能使用 0:后台接口管理，其他作为数据修复
+
 	Dbindex int
 	Minio string
+	Cfsdata string
 	Mysql *mysql_client.MySQLConfig
 	Redis *redis_client.RedisConfig
 

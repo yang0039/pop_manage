@@ -14,6 +14,9 @@ const (
 	SetUserUserName = 2002 // 更新username
 	SetUserPhone    = 2003 // 更新用户手机号
 	DelUser         = 2004 // 删除用户
+	DelChatHistory  = 2005 // 清除群记录
+	DelMsg          = 2006 // 删除消息
+	DelChat         = 2007 // 解散群组
 )
 
 const (
@@ -98,6 +101,26 @@ func ToOriginMsgType(msgType int32) int32 {
 	}
 }
 
+func FileToOriMsgType(msgType int32) []int32 {
+	// 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
+	switch msgType {
+	case 0:
+		return []int32{1,2,3,5,6,7,11}
+	case 1:
+		return []int32{2}
+	case 2:
+		return []int32{3, 11}
+	case 3:
+		return []int32{6}
+	case 4:
+		return []int32{1}
+	case 5:
+		return []int32{5, 7}
+	default:
+		return []int32{1,2,3,5,6,7,11}
+	}
+}
+
 func ToApiMsgType(msgType int32, message *mtproto.Message) (int32, string) {
 	switch msgType {
 	case 0:
@@ -135,7 +158,7 @@ func ToApiMsgType(msgType int32, message *mtproto.Message) (int32, string) {
 	}
 }
 
-// 1:更新popid, 2:更新手机号，3:更新备注(做标记), 4:更新封号状态, 5:更新客服, 6:删除用户
+// 1:更新popid, 2:更新手机号，3:更新备注(做标记), 4:更新封号状态, 5:更新客服, 6:删除用户, 7:删除用户两步验证
 const (
 	UpdatePopId    = 1
 	UpdatePhone    = 2
@@ -143,4 +166,5 @@ const (
 	Updatebanned   = 4 // 封号解封
 	UpdateOfficial = 5 // 更新客服状态
 	DeleteUser     = 6 // 删除用户
+	DeleteUserPwd  = 7 // 删除两步验证
 )

@@ -20,6 +20,7 @@ import (
 	"pop-api/controller/store_manage"
 	"pop-api/controller/system_manage"
 	"pop-api/dal/dao"
+	"pop-api/data_tool"
 	"pop-api/middleware"
 	"pop-api/public"
 )
@@ -49,10 +50,24 @@ func main() {
 	Sugar.Infof("config=%v", Conf)
 	dao.InstallMysqlDAOManager(mysql_client.NewSqlxDB(Conf.Mysql), Conf.Dbindex)
 	redis_client.InstallRedisClientManager(*Conf.Redis)
+	Sugar.Infof("FuncType=%d", Conf.FuncType)
+	if Conf.FuncType != 0 {
+		if Conf.FuncType == 1 {
+			data_tool.DelRepeatData()
+		}
+		if Conf.FuncType == 2 {
+			data_tool.RepairMsgPts()
+		}
+		if Conf.FuncType == 3 {
+			data_tool.RepairChannelMsg()
+		}
+
+		return
+	}
 
 	minio_client.InitData(Conf.Minio)
 	// 先写固定值，后续从配置文件获取
-	//minio_client.InitClientConfig("127.0.0.1:9123", "127.0.0.1:9000", "Wink@YaMyB2GmOEetkib6O#+KRfuze6T", "DQMYMM5HIJ4EF2XROGRK", "UooDmD1HwHvv67fjuVHYFpQcMGmyUCjyJt+B+n24")
+	minio_client.InitClientConfig("127.0.0.1:9123", "127.0.0.1:9000", "Wink@YaMyB2GmOEetkib6O#+KRfuze6T", "DQMYMM5HIJ4EF2XROGRK", "UooDmD1HwHvv67fjuVHYFpQcMGmyUCjyJt+B+n24")
 
 	//minio_client.PresignedGetObject("photo", "0/20220118/1483260720857632768.jpg")
 	//fmt.Println("url=", url)
@@ -138,4 +153,5 @@ func main() {
 
 func timeTask() {
 	go data_cache.DailyActiveData()
+	go data_cache.DelChatFileData()
 }

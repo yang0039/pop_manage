@@ -60,12 +60,11 @@ func (dao *FilesDAO) GetUserFiles(userId, offset, limit int32) ([]*dataobject.Fi
 func (dao *FilesDAO) GetAllStore(uId int32) map[string]*dataobject.UserFilesDo {
 	var userQuery string
 	if uId != 0 {
-		userQuery = fmt.Sprintf("where user_id = %d", uId)
+		userQuery = fmt.Sprintf("and user_id = %d", uId)
 	}
-
-
 	res := make(map[string]*dataobject.UserFilesDo, 0)
-	var query = "select ext, sum(file_size)/1024/1024 size, count(*) count from files " + userQuery + " group by ext;"
+	var query = `
+		select ext, sum(file_size)/1024/1024 size, count(*) count from files where file_size > 0 and status = 0 ` + userQuery + ` group by ext;`
 	rows, err := dao.db.Queryx(query)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
@@ -87,17 +86,18 @@ func (dao *FilesDAO) GetAllStore(uId int32) map[string]*dataobject.UserFilesDo {
 func (dao *FilesDAO) GetUserRank(qType, offset, limit int32) ([]*dataobject.UserFilesDo, int32) {
 	var queryType string
 	// 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
+	queryType = "where status = 0 "
 	if qType == 0 {
 	} else if qType == 1 {
-		queryType = "where ext in ('.jpg','.jepg','.png')"
+		queryType = "and ext in ('.jpg','.jepg','.png')"
 	} else if qType == 2 {
-		queryType = "where ext in ('.mp4','.avi')"
+		queryType = "and ext in ('.mp4','.avi')"
 	} else if qType == 3 {
-		queryType = "where ext in ('.ogg')"
+		queryType = "and ext in ('.ogg')"
 	} else if qType == 4 {
-		queryType = "where ext not in ('','.ogg','.jpg','.jepg','.png','.mp4','.avi')"
+		queryType = "and ext not in ('','.ogg','.jpg','.jepg','.png','.mp4','.avi')"
 	} else if qType == 5 {
-		queryType = "where ext in ('')"
+		queryType = "and ext in ('')"
 	}
 
 
@@ -127,24 +127,21 @@ func (dao *FilesDAO) GetUserRank(qType, offset, limit int32) ([]*dataobject.User
 func (dao *FilesDAO) GetLastUpload(uId, qType, offset, limit int32) ([]*dataobject.FilesDo, int32) {
 	var queryType string
 	// 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
+	queryType = "where status = 0 "
 	if qType == 0 {
 	} else if qType == 1 {
-		queryType = "where ext in ('.jpg','.jepg','.png')"
+		queryType = "and ext in ('.jpg','.jepg','.png')"
 	} else if qType == 2 {
-		queryType = "where ext in ('.mp4','.avi')"
+		queryType = "and ext in ('.mp4','.avi')"
 	} else if qType == 3 {
-		queryType = "where ext in ('.ogg')"
+		queryType = "and ext in ('.ogg')"
 	} else if qType == 4 {
-		queryType = "where ext not in ('','.ogg','.jpg','.jepg','.png','.mp4','.avi')"
+		queryType = "and ext not in ('','.ogg','.jpg','.jepg','.png','.mp4','.avi')"
 	} else if qType == 5 {
-		queryType = "where ext in ('')"
+		queryType = "and ext in ('')"
 	}
 	if uId != 0 {
-		if queryType == "" {
-			queryType += fmt.Sprintf("where user_id = %d", uId)
-		} else {
-			queryType += fmt.Sprintf(" and user_id = %d", uId)
-		}
+		queryType += fmt.Sprintf(" and user_id = %d", uId)
 	}
 
 
@@ -172,3 +169,54 @@ func (dao *FilesDAO) GetLastUpload(uId, qType, offset, limit int32) ([]*dataobje
 	raise(err)
 	return res, count
 }
+
+func (dao *FilesDAO) SelectById(file_id int64) *dataobject.FilesDo {
+	var query = "select id, user_id, file_id, access_hash, file_part_id, file_parts, file_size, file_path, ext, upload_name, created_at, auth_id, status, sse from files where file_id = ?"
+	row := dao.db.QueryRowx(query, file_id)
+	var do dataobject.FilesDo
+	err := row.StructScan(&do)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	raise(err)
+	return &do
+}
+
+//func (dao *FilesDAO) DelById(file_id int64) {
+//	var query = "delete from files where file_id = ?"
+//	_, err := dao.db.Exec(query, file_id)
+//	raise(err)
+//}
+
+func (dao *FilesDAO) SelectByPartId(user_id int32, partId int64) *dataobject.FilesDo {
+	var query = "select id, user_id, file_id, access_hash, file_part_id, file_parts, file_size, file_path, ext, upload_name, created_at, auth_id, status, sse from files where user_id = ? and file_part_id = ?"
+	row := dao.db.QueryRowx(query, user_id, partId)
+	var do dataobject.FilesDo
+	err := row.StructScan(&do)
+	if err == sql.ErrNoRows {
+		return nil
+	}
+	raise(err)
+	return &do
+}
+
+func (dao *FilesDAO) DelByPath(user_id int32, path string) {
+	var query = "update files set status = 1 where user_id = ? and file_path = ?"
+	_, err := dao.db.Exec(query, user_id, path)
+	raise(err)
+}
+
+func (dao *FilesDAO) DelByPartId(user_id int32, partId int64) {
+	var query = "update files set status = 1 where user_id = ? and file_part_id = ?"
+	_, err := dao.db.Exec(query, user_id, partId)
+	raise(err)
+}
+
+func (dao *FilesDAO) DelById(fileId int64) {
+	var query = "update files set status = 1 where file_id = ?"
+	_, err := dao.db.Exec(query, fileId)
+	raise(err)
+}
+
+
+

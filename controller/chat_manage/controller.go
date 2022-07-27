@@ -13,6 +13,9 @@ func ChatManageRegister(group *gin.RouterGroup) {
 	group.POST("/update_chat_status", service.AddChatStatus)
 	group.GET("/qry_status_record", service.QryChatStatusRecord)
 
+	group.POST("/delete_chat_history", service.DelChatHistory)
+	group.POST("/delete_chat", service.DelChat)
+
 	//group.GET("/active_data", service.ActiveData)
 	//group.GET("/max_member_chat", service.MaxMemberChat)
 }

@@ -137,7 +137,7 @@ func (service *UserController) BannedUser(c *gin.Context) {
 
 // 用户设置为客服
 func (service *UserController) SetOfficialUser(c *gin.Context) {
-	url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
+	//url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
 	//userSet := &dto.SetUserOfficial{}
 	//if err := c.ShouldBind(userSet); err != nil {
 	//	middleware.ResponseError(c, 500, "系统错误", err)
@@ -165,7 +165,7 @@ func (service *UserController) SetOfficialUser(c *gin.Context) {
 		"data": data,
 	}
 	body, _ := json.Marshal(m)
-	err = fetchdata("POST", url, nil, body, nil)
+	err = fetchdata("POST", util.Url, nil, body, nil)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
@@ -263,7 +263,7 @@ func (service *UserController) DelAccount(c *gin.Context) {
 
 // 更新用户username
 func (service *UserController) UpdateUserName(c *gin.Context) {
-	url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
+	//url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
 	//userName := &dto.UpdateUserName{}
 	//if err := c.ShouldBind(userName); err != nil {
 	//	middleware.ResponseError(c, 500, "系统错误", err)
@@ -308,7 +308,7 @@ func (service *UserController) UpdateUserName(c *gin.Context) {
 		"data": data,
 	}
 	body, _ := json.Marshal(m)
-	err = fetchdata("POST", url, nil, body, nil)
+	err = fetchdata("POST", util.Url, nil, body, nil)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
@@ -331,7 +331,7 @@ func (service *UserController) UpdateUserName(c *gin.Context) {
 
 // 更新用户手机号
 func (service *UserController) UpdateUserPhone(c *gin.Context) {
-	url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
+	//url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
 	//userPhone := &dto.UpdateUserPhone{}
 	//if err := c.ShouldBind(userPhone); err != nil {
 	//	middleware.ResponseError(c, 500, "系统错误", err)
@@ -376,7 +376,7 @@ func (service *UserController) UpdateUserPhone(c *gin.Context) {
 		"data": data,
 	}
 	body, _ := json.Marshal(m)
-	err = fetchdata("POST", url, nil, body, nil)
+	err = fetchdata("POST", util.Url, nil, body, nil)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
@@ -399,7 +399,7 @@ func (service *UserController) UpdateUserPhone(c *gin.Context) {
 
 // 删除账号
 func (service *UserController) DelUser(c *gin.Context) {
-	url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
+	//url := "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
 	//userPhone := &dto.UpdateUserPhone{}
 	//if err := c.ShouldBind(userPhone); err != nil {
 	//	middleware.ResponseError(c, 500, "系统错误", err)
@@ -428,7 +428,7 @@ func (service *UserController) DelUser(c *gin.Context) {
 		"data": data,
 	}
 	body, _ := json.Marshal(m)
-	err = fetchdata("POST", url, nil, body, nil)
+	err = fetchdata("POST", util.Url, nil, body, nil)
 	if err != nil {
 		middleware.ResponseError(c, 500, "系统错误", err)
 		return
@@ -594,4 +594,33 @@ func (service *UserController) GetUserOpera(c *gin.Context) {
 		"count":      count,
 	}
 	middleware.ResponseSuccess(c, data)
+}
+
+// 清除两步验证
+func (service *UserController) DelUserPassword(c *gin.Context) {
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
+		middleware.ResponseError(c, 500, "系统错误", err)
+		return
+	}
+	params, _ := bindData.(*dto.QryUser)
+	if params.UserId == 0 {
+		middleware.ResponseError(c, 400, "参数错误", errors.New(fmt.Sprintf("invalid param, param:%v", params)))
+		return
+	}
+
+	dao.GetCommonDAO().DelUserPassword(params.UserId)
+	// 记录操作
+	accId, _ := c.Get("account_id")
+	id, _ := accId.(int32)
+	uo := &dataobject.UserOpera{
+		AccountId:    id,
+		UserId:       params.UserId,
+		OperaType:    util.DeleteUserPwd,
+		OperaContent: fmt.Sprintf("删除两步验证, 用户id:%d", params.UserId),
+		AddTime:      time.Now().Unix(),
+	}
+	dao.GetUserOperaDAO().AddOperaRecords(uo)
+
+	middleware.ResponseSuccess(c, nil)
 }

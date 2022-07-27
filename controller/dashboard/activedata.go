@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"pop-api/controller/_dummy/chatapi"
 	"pop-api/dal/dao"
+	"pop-api/dto"
 	"pop-api/middleware"
 	"time"
 )
@@ -40,6 +41,16 @@ func (service *DashboardController) ActiveData(c *gin.Context) {
 
 // 前100人数群消息
 func (service *DashboardController) MaxMemberChat(c *gin.Context) {
+	bindData, err := middleware.ShouldBind(c)
+	if err != nil {
+		middleware.ResponseError(c, 500, "系统错误", err)
+		return
+	}
+	params, _ := bindData.(*dto.QryType)
+
+	// QryType
+
+
 	end := time.Now().Unix()
 
 	y, m, d := time.Now().Date()
@@ -49,24 +60,35 @@ func (service *DashboardController) MaxMemberChat(c *gin.Context) {
 	commomDao := dao.GetCommonDAO()
 
 	// 获取前100人数群id
-	chatIds := commomDao.Get100ChatIds()
+	chatIds := commomDao.Get100ChatIds(params.Limit, params.Offset)
 
 	// 前7天活跃的群
-	chatIds7 := commomDao.GetActiveChatIds(Before7Unix, end)
-	activeMap := make(map[int32]bool, len(chatIds7))
-	for _,id := range chatIds7 {
-		activeMap[id] = true
+	//chatIds7 := commomDao.GetActiveChatIds(Before7Unix, end)
+	activeMap := make(map[int32]bool, len(chatIds))
+	for _, cId := range chatIds {
+		activeMap[cId] = commomDao.GetChatIsActivve(cId, Before7Unix, end)
 	}
-
+	//for _,id := range chatIds7 {
+	//	activeMap[id] = true
+	//}
 	chats := chatapi.ChatInfo(chatIds)
-
+	chatsMap := make(map[int32]map[string]interface{}, len(chats))
 	for _, c := range chats {
 		chatId, _ := c["chat_id"].(int32)
 		c["is_active"] = activeMap[chatId]
+		chatsMap[chatId] = c
+	}
+	res := make([]interface{}, 0, len(chatIds))
+	for _, id := range chatIds {
+		d, ok := chatsMap[id]
+		if ok {
+			res = append(res, d)
+		}
 	}
 
 	data := map[string]interface{}{
-		"100_chat": chats,
+		"chat_100": res,
+		"count":100,
 	}
 	middleware.ResponseSuccess(c, data)
 }

@@ -1,9 +1,16 @@
 package util
 
 import (
+	"crypto/tls"
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"pop-api/baselib/logger"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -13,6 +20,8 @@ const (
 	PeerChannel = 3    // 频道
 	PeerMass = 4       // 群发
 )
+
+const Url = "http://127.0.0.1:9200/bot1614847516:12f9f726d3423000/jsonapi"
 
 func DbToApiChatType(peerType int32) int32 {
 	if peerType == 1 || peerType == 2 {
@@ -80,6 +89,40 @@ func Folat2(d float64) float64 {
 
 
 
+func Fetchdata(method, u string, param map[string]string, body []byte, res interface{}) error {
+	// 跳过证书验证
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
+	client := &http.Client{Timeout: 30 * time.Second, Transport: tr}
 
+	req, err := http.NewRequest(method, u, strings.NewReader(string(body)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	values := url.Values{}
+	for k, v := range param {
+		values.Set(k, v)
+	}
+	req.URL.RawQuery = values.Encode()
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusOK {
+		body, _ := ioutil.ReadAll(resp.Body)
+		if res != nil {
+			err = json.Unmarshal(body, res)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		return errors.New("服务器响应失败:" + resp.Status)
+	}
+	return nil
+}
 
 

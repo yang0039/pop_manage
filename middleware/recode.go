@@ -26,7 +26,15 @@ func getUrlData(c *gin.Context) (interface{}, string, error) {
 	case "/dashboard/active_data":
 		return nil, "", nil
 	case "/dashboard/max_member_chat":
-		return nil, "", nil
+		data := &dto.QryType{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		if data.Limit == 0 {
+			data.Limit = 10
+		}
+		reqData := fmt.Sprintf("请求页码:%d, 请求数量:%d", (data.Offset/data.Limit)+1, data.Limit)
+		return data, reqData, nil
 
 	case "/chat_manage/update_note":
 		data := &dto.NoteObj{}
@@ -93,6 +101,20 @@ func getUrlData(c *gin.Context) (interface{}, string, error) {
 		}
 		reqData += fmt.Sprintf(", 请求页码:%d, 请求数量:%d", (data.Offset/data.Limit)+1, data.Limit)
 		return data, reqData, nil
+	case "/chat_manage/delete_chat_history":
+		data := &dto.QryChat{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		reqData := fmt.Sprintf("群id:%d", data.ChatId)
+		return data, reqData, nil
+	case "/chat_manage/delete_chat":
+		data := &dto.QryChat{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		reqData := fmt.Sprintf("群id:%d", data.ChatId)
+		return data, reqData, nil
 
 	case "/user_manage/update_note":
 		data := &dto.NoteObj{}
@@ -139,6 +161,13 @@ func getUrlData(c *gin.Context) (interface{}, string, error) {
 		return data, reqData, nil
 	case "/user_manage/delete_user":
 		data := &dto.UpdateUserPhone{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		reqData := fmt.Sprintf("用户id:%d", data.UserId)
+		return data, reqData, nil
+	case "/user_manage/delete_user_pwd":
+		data := &dto.QryUser{}
 		if err := c.ShouldBind(data); err != nil {
 			return data, "", err
 		}
@@ -326,6 +355,20 @@ func getUrlData(c *gin.Context) (interface{}, string, error) {
 			data.Limit = 20
 		}
 		reqData += fmt.Sprintf(", 请求页码:%d, 请求数量:%d", (data.Offset/data.Limit)+1, data.Limit)
+		return data, reqData, nil
+	case "/record/del_file":
+		data := &dto.RemoveFileMessage{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		reqData := fmt.Sprintf("用户id:%d, 对方类型:%d, 对方id:%d, 消息id:%v", data.UserId, data.PeerType, data.PeerId, data.MsgIds)
+		return data, reqData, nil
+	case "/record/del_peer_file":
+		data := &dto.RemovePeerFile{}
+		if err := c.ShouldBind(data); err != nil {
+			return data, "", err
+		}
+		reqData := fmt.Sprintf("对方类型:%d, 对方id:%d, 开始时间:%d, 结束:%d", data.PeerType, data.PeerId, data.Start, data.End)
 		return data, reqData, nil
 
 	case "/store_manage/all_store":

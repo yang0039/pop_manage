@@ -83,6 +83,8 @@ func (service *DashboardController) TotalData(c *gin.Context) {
 	uActiveCount5, cActiveCount5 := commomDao.GetActiveData5(date5)
 	logger.LogSugar.Info("TotalData 8")
 	disk := DiskUsage("/data")
+	//Conf
+	//disk := DiskUsage("/efs")
 	fmt.Printf("All: %.2f GB", float64(disk.All)/float64(GB))
 	fmt.Printf("Used: %.2f GB", float64(disk.Used)/float64(GB))
 	fmt.Printf("Free: %.2f GB", float64(disk.Free)/float64(GB))

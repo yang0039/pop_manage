@@ -319,3 +319,52 @@ func (dao *ChatParticipantDAO) GetCommonChatsCount(a_id, b_id int32) int32 {
 	raise(err)
 	return count
 }
+
+func (dao *ChatParticipantDAO) GetChatPartId(chatId int32) []int32 {
+	partIds := make([]int32, 0)
+	qry := `
+	select user_id
+	from chat_participant
+	where chat_id = ?;
+	`
+	q, args, err := sqlx.In(qry, chatId)
+	raise(err)
+	rows, err := dao.db.Queryx(q, args...)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return partIds
+	}
+	raise(err)
+	for rows.Next() {
+		var userId int32
+		err = rows.Scan(&userId)
+		raise(err)
+		partIds = append(partIds, userId)
+	}
+	return partIds
+}
+
+// 查找用户参与的超级群和频道
+func (dao *ChatParticipantDAO) GetChannelByUser(user int32) []int32 {
+	res := make([]int32, 0)
+	qry := `
+	select chat_id
+	from chat_participant p
+	left join chat c on p.chat_id = c.id
+	where c.type in (2,3) and user_id = ?
+	group by chat_id;
+	`
+	rows, err := dao.db.Queryx(qry, user)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return res
+	}
+	raise(err)
+	for rows.Next() {
+		var chatId int32
+		err = rows.Scan(&chatId)
+		raise(err)
+		res = append(res, chatId)
+	}
+	return res
+}

@@ -28,5 +28,6 @@ func ChatUserRegister(group *gin.RouterGroup) {
 	group.POST("/update_user_username", service.UpdateUserName)
 	group.POST("/update_user_phone", service.UpdateUserPhone)
 	group.GET("/query_user_opera", service.GetUserOpera)
+	group.POST("/delete_user_pwd", service.DelUserPassword)
 }
 

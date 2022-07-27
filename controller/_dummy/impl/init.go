@@ -18,6 +18,8 @@ func init() {
 	recordapi.ChannelMsgToMessage = message_record.ChannelMsgToMessage
 	recordapi.GetPeer = message_record.GetPeer
 	recordapi.GetUser = message_record.GetUser
+	recordapi.GetUserOriginMessage = message_record.GetUserOriginMessage
+	recordapi.GetChannelOriginMessage = message_record.GetChannelOriginMessage
 
 	memberapi.GetUserDialog = member_manage.GetUserDialog
 }

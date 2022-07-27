@@ -113,7 +113,7 @@ func (dao *UserDAO) GetUserIdsByUserName(uname string, limit, offset int32) ([]i
 		res = append(res, id)
 	}
 
-	qryCount := "select count(*) from user where username = ?;"
+	qryCount := "select count(*) from user where username like ?;"
 	row := dao.db.QueryRow(qryCount, uname)
 	var count int32
 	err = row.Scan(&count)
@@ -308,7 +308,7 @@ func (dao *UserDAO) GetUserIdsByName(name string, limit, offset int32) ([]int32,
 		res = append(res, id)
 	}
 
-	qryCount := "select count(*) from user where concat(first_name, ' ', last_name) = ? || concat(first_name, last_name) = ?;"
+	qryCount := "select count(*) from user where concat(first_name, ' ', last_name) like ? || concat(first_name, last_name) like ?;"
 	row := dao.db.QueryRow(qryCount, name, name)
 	var count int32
 	err = row.Scan(&count)

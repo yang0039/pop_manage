@@ -9,4 +9,7 @@ func ChatRecordRegister(group *gin.RouterGroup) {
 	//group.POST("/update_note", service.AddUserNote)
 	group.GET("/query_message", service.GetMessageRecord)
 	group.GET("/query_dialogs", service.GetDialogs)
+
+	group.POST("/del_file", service.DelFile)
+	group.POST("/del_peer_file", service.DelFileMessages)
 }

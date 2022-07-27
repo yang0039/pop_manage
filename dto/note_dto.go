@@ -135,10 +135,13 @@ type ChatStatus struct {
 }
 
 type StoreType struct {
-	UserId int32 `json:"user_id" form:"user_id"`
-	Type   int32 `json:"type" form:"type"` // 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
-	Limit  int32 `json:"limit" form:"limit"`
-	Offset int32 `json:"offset" form:"offset"`
+	UserId   int32 `json:"user_id" form:"user_id"`
+	Type     int32 `json:"type" form:"type"` // 0:所有 1:图片 2:视频 3:音频 4:文件 5:其他
+	PeerType int32 `json:"peer_type" form:"peer_type"`
+	Start    int64 `json:"start" form:"start"`
+	End      int64 `json:"end" form:"end"`
+	Limit    int32 `json:"limit" form:"limit"`
+	Offset   int32 `json:"offset" form:"offset"`
 }
 
 type UpdateUserName struct {
@@ -152,5 +155,21 @@ type UpdateUserPhone struct {
 }
 
 type QryChat struct {
-	ChatId int32 `form:"chat_id"`
+	ChatId int32 `json:"chat_id" form:"chat_id"`
+}
+
+type RemoveFileMessage struct {
+	//FileId int64 `json:"file_id" form:"file_id"`
+	UserId   int32   `json:"user_id" form:"user_id"`
+	PeerType int32   `json:"peer_type" form:"peer_type"`
+	PeerId   int32   `json:"peer_id" form:"peer_id"`
+	MsgIds   []int32 `json:"msg_ids" form:"msg_ids"`
+}
+
+//PeerType, PeerId int, start, end int64
+type RemovePeerFile struct {
+	PeerType int32 `json:"peer_type" form:"peer_type"`
+	PeerId   int32 `json:"peer_id" form:"peer_id"`
+	Start    int64 `json:"start" form:"start"`
+	End      int64 `json:"end" form:"end"`
 }

@@ -25,7 +25,7 @@ func (service *UserController) GetFile(c *gin.Context) {
 	photoDao := dao.GetPhotoDAO()
 	photo := photoDao.SelectByPhotoId(params.FileId, 0)
 
-	bytes,err := minio_client.GetObjectByLimit(photo.FilePath, photo.Sse, 0, 0)
+	bytes,err := minio_client.GetObjectByLimit(photo.FilePath, photo.Sse, 0, 1000)
 	if err != nil {
 		logger.LogSugar.Errorf("GetFile err:%v", err)
 	}

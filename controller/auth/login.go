@@ -12,7 +12,6 @@ import (
 	"pop-api/dal/dao"
 	"pop-api/dto"
 	"pop-api/middleware"
-	"strings"
 	"time"
 )
 
@@ -40,10 +39,18 @@ func (service *AccountController) Login(c *gin.Context) {
 	commomDao := dao.GetCommonDAO()
 
 	var ip string
-	ips := strings.Split(c.Request.RemoteAddr, ":")
-	if len(ips) == 2 {
-		ip = ips[0]
+	//ips := strings.Split(c.Request.RemoteAddr, ":")
+	//if len(ips) == 2 {
+	//	ip = ips[0]
+	//}
+	cIps := c.Request.Header["X-Real-Ip"]
+	if len(cIps) > 0 {
+		ip = cIps[0]
+	} else {
+		ip = c.ClientIP()
 	}
+
+
 	value := commomDao.GetConfig("white")
 	allowIps, _ := allowIpDao.GetAllowIp()
 	if value == "1" {

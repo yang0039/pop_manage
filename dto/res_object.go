@@ -33,3 +33,32 @@ type Message struct {
 	Message string `json:"message"`  // 消息内容
 	Url     string `json:"url"`
 }
+
+type PeerMsg struct {
+	PeerType  int32  `json:"peer_type"`
+	PeerId    int32  `json:"peer_id"`
+	MsgId     int32  `json:"msg_id"`
+}
+
+type FileData struct {
+	UserId     int32
+	//MsgId      int32
+	Peer       PeerMsg
+	FileId     int64
+	FileSize   int32
+	UploadName string
+	FilePath   string
+	Ext        string
+	AddTime    int64
+}
+
+//type PeerMsg struct {
+//	PeerType int32   `json:"peer_type"`
+//	PeerId   int32   `json:"peer_id"`
+//	MsgIds   []int32 `json:"msg_ids"`
+//}
+//
+//type RemoveMessage struct {
+//	UserMsgs    PeerMsg `json:"user_msgs"`
+//	ChannelMsgs PeerMsg `json:"channel_msgs"`
+//}

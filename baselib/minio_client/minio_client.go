@@ -138,3 +138,25 @@ func GetObjectByLimit(path string, enc bool, offset int, limit int) ([]byte, err
 		return ioutil.ReadAll(reader)
 	}
 }
+
+
+func RemoveObject(path string)  error {
+	buckname, objectName := splitbuck(path)
+	buckname = BUCK_PRE + buckname
+	err := minioClient.RemoveObject(buckname, objectName)
+	return err
+}
+
+//func RemoveObjects(path string) {
+//	buckname, objectName := splitbuck(path)
+//	buckname = BUCK_PRE + buckname
+//
+//	minioClient.ListObjects()
+//
+//	//opt := minio.GetObjectOptions{}
+//
+//	minioClient.RemoveObjects()
+//}
+
+
+

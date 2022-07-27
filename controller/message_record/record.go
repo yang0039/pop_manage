@@ -162,7 +162,8 @@ func UserMsgToMessage(msgs []*dataobject.UserMsgRow) []*dto.Message {
 		//}
 		mess, msgType := ToMessageAndType(msg, int32(m.Type))
 		message := &dto.Message{
-			MsgId:   msg.Data2.Id,
+			//MsgId:   msg.Data2.Id,
+			MsgId:   m.FromMsgId,    // msgId改成对应的发送人的消息id
 			From:    GetUser(msg.Data2.FromId),
 			Peer:    GetPeer(rawMap[m.RawId].PeerType, rawMap[m.RawId].PeerId),
 			Date:    msg.Data2.Date,

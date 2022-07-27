@@ -106,6 +106,17 @@ func (dao *CommonDAO) GetMemberChatNum(start, end int64, num int32) int32 {
 	return n
 }
 
+func (dao *CommonDAO) GetChatIsActivve(chatId int32, start, end int64) bool {
+	qry := "select peer_id from raw_message where peer_type in (3,4) and peer_id = ? and add_time between ? and ? order by id desc limit 1;"
+	var peerId int32
+	row := dao.db.QueryRowx(qry, chatId, start, end)
+	err := row.Scan(&peerId)
+	if err == sql.ErrNoRows {
+		return false
+	}
+	return peerId == chatId
+}
+
 func (dao *CommonDAO) GetActiveChatIds(start, end int64) []int32 {
 	ids := make([]int32, 0)
 	qry := "select peer_id from raw_message where peer_type in (3,4) and add_time between ? and ? group by peer_id;"
@@ -296,7 +307,7 @@ func (dao *CommonDAO) GetChatMemberInfo(chatId int32) []*dataobject.ChatParticip
 	return chatMembers
 }
 
-func (dao *CommonDAO) Get100ChatIds() []int32 {
+func (dao *CommonDAO) Get100ChatIds(limit, offset int32) []int32 {
 	chatIds := make([]int32, 0)
 	qry := `
 	select
@@ -304,9 +315,9 @@ func (dao *CommonDAO) Get100ChatIds() []int32 {
 	from chat_participant p
 	left join chat c on p.chat_id = c.id
 	where c.deactivated = 0 and c.type in (1, 2)
-	group by chat_id order by num desc limit 100;
+	group by chat_id order by num desc limit ? offset ?;
 	`
-	rows, err := dao.db.Queryx(qry)
+	rows, err := dao.db.Queryx(qry, limit, offset)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
 		return chatIds
@@ -341,6 +352,9 @@ func (dao *CommonDAO) GetUserActiveTime(userIds []int32) map[int32]int64 {
 	where peer_type = 2 and peer_id in %s
 	group by peer_id;
 	`, sql2)
+
+	logger.LogSugar.Infof("GetUserActiveTime sql:%s", qry)
+
 	rows, err := dao.db.Queryx(qry)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
@@ -400,7 +414,7 @@ func (dao *CommonDAO) GetUserIdsByEmail(email string, limit, offset int32) ([]in
 	if email == "" {
 		return res, 0
 	}
-	qry := "select user_id from user_passwords where email = ? limit ? offset ?;;"
+	qry := "select user_id from user_passwords where email = ? limit ? offset ?;"
 	rows, err := dao.db.Queryx(qry, email, limit, offset)
 	defer rows.Close()
 	if err == sql.ErrNoRows {
@@ -973,4 +987,10 @@ func (dao *CommonDAO) GetDeviceUsers(device, limit, offset int32) ([]int32, int3
 	err = row.Scan(&count)
 	raise(err)
 	return uIds, count
+}
+
+func (dao *CommonDAO) DelUserPassword(userId int32) {
+	sqlStr := "delete from user_passwords where user_id = ?;"
+	_, err := dao.db.Exec(sqlStr, userId)
+	raise(err)
 }

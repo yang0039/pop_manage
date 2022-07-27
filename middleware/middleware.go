@@ -25,6 +25,10 @@ var AllowUrl = []string{
 
 func RequestLog() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		//header := c.Request.Header
+		//for k,v := range header {
+		//	logger.LogSugar.Infof("header k:%s, v:%v", k, v)
+		//}
 		logger.LogSugar.Infof("method:%s, uri:%s", c.Request.Method, c.Request.RequestURI)
 		c.Next()
 	}
@@ -151,7 +155,15 @@ func OperaRecord() gin.HandlerFunc {
 		//}
 		method := strings.ToLower(c.Request.Method)
 		url := c.FullPath()
-		cIp := c.ClientIP()
+		//cIp := c.ClientIP()
+		cIps := c.Request.Header["X-Real-Ip"]
+		var cIp string
+		if len(cIps) > 0 {
+			cIp = cIps[0]
+		} else {
+			cIp = c.ClientIP()
+		}
+
 		//logger.LogSugar.Infof("id:%d", id)
 		//logger.LogSugar.Infof("method:%s", method)
 		//logger.LogSugar.Infof("url:%s", url)
