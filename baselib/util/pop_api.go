@@ -167,4 +167,5 @@ const (
 	UpdateOfficial = 5 // 更新客服状态
 	DeleteUser     = 6 // 删除用户
 	DeleteUserPwd  = 7 // 删除两步验证
+	BannedIp  = 8 // 禁用ip
 )

@@ -130,4 +130,29 @@ func (dao *CommonDAO) GetChannelMaxMsgId(chatId int32) (int32) {
 	return msgId
 }
 
+func (dao *CommonDAO) GetTimeUser(start, end int64) []map[string]string {
+	users := make([]map[string]string, 0)
+	var userSql = `select id, first_name, last_name from user where add_time between ? and ?;`
+	rows, err := dao.db.Queryx(userSql, start, end)
+	defer rows.Close()
+	if err == sql.ErrNoRows {
+		return users
+	}
+	raise(err)
+	for rows.Next() {
+		var id int32
+		var fName, lName string
+		err = rows.Scan(&id, &fName, &lName)
+		raise(err)
+		u := map[string]string{
+			"id": fmt.Sprintf("%d", id),
+			"first_name": fName,
+			"last_name": lName,
+		}
+		users = append(users, u)
+	}
+	return users
+}
+
+
 

@@ -59,7 +59,10 @@ func main() {
 			data_tool.RepairMsgPts()
 		}
 		if Conf.FuncType == 3 {
-			data_tool.RepairChannelMsg()
+			//data_tool.RepairChannelMsg()
+		}
+		if Conf.FuncType == 4 {
+			data_tool.RepairName()
 		}
 
 		return

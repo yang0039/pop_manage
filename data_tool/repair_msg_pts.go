@@ -5,6 +5,7 @@ import (
 	"pop-api/baselib/logger"
 	"pop-api/baselib/redis_client"
 	"pop-api/dal/dao"
+	"strconv"
 	"time"
 )
 
@@ -88,4 +89,49 @@ func RepairChannelMsg() {
 
 	}
 	logger.LogSugar.Infof("===============success=================")
+}
+
+func RepairName() {
+	comDao := dao.GetCommonDAO()
+	// 修复这段时间的数据
+	start := int64(1658764800)
+	end := int64(1658851200)
+	//           1658764805
+	users := comDao.GetTimeUser(start, end)
+	var c int32
+	for _, user := range users {
+		//logger.LogSugar.Infof("user:%v", user)
+		uidStr, _ := user["id"]
+		uid,_ := strconv.Atoi(uidStr)
+		if uid == 0 {
+			logger.LogSugar.Infof("unknow user:%v", user)
+			continue
+		}
+		f := user["first_name"]
+		l := user["last_name"]
+
+		fName,_ := redis_client.RedisCache.HGet(fmt.Sprintf("auth:%d:first_name", uid), "0").Result()
+		//lName,_ := redis_client.RedisCache.HGet(fmt.Sprintf("auth:%d:last_name", uid), "0").Result()
+
+		var info string
+		if fName == "" && f != "" {
+			info += fmt.Sprintf("fname:%s  ", f)
+			redis_client.RedisCache.HSet(fmt.Sprintf("auth:%d:first_name", uid), "0", f)
+		}
+
+		redis_client.RedisCache.HSet(fmt.Sprintf("auth:%d:last_name", uid), "0", l)
+		info += fmt.Sprintf("lname:%s  ", l)
+		//if lName == "" && l != "" {
+		//	info += fmt.Sprintf("lname:%s  ", l)
+		//	redis_client.RedisCache.HSet(fmt.Sprintf("auth:%d:last_name", uid), "0", l)
+		//}
+
+		if info != "" {
+			info2 := fmt.Sprintf("=== uid:%d, %s", uid, info)
+			logger.LogSugar.Infof(info2)
+			c ++
+		}
+
+	}
+	logger.LogSugar.Infof("===============success  count:%d=================", c)
 }

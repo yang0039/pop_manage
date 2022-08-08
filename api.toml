@@ -1,5 +1,5 @@
 
-funcType = 2
+funcType = 4
 dbindex = 2
 
 minio = "192.168.31.205:9000"
